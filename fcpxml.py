@@ -32,11 +32,16 @@ def _get_video_info(video_path):
 
 
 def _seconds_to_fcpxml_time(seconds, fps=30):
-    """Convert seconds to FCPXML rational time (e.g., '3003/1001s')."""
+    """Convert seconds to FCPXML rational time snapped to frame boundaries."""
     frames = round(seconds * fps)
-    if fps == 29.97 or fps == 30000 / 1001:
+    fps_rounded = round(fps)
+    if abs(fps - 29.97) < 0.1 or abs(fps - 30000 / 1001) < 0.01:
         return f"{frames * 1001}/30000s"
-    return f"{round(seconds * 1000)}/1000s"
+    if abs(fps - 59.94) < 0.1 or abs(fps - 60000 / 1001) < 0.01:
+        return f"{frames * 1001}/60000s"
+    if abs(fps - 23.976) < 0.1 or abs(fps - 24000 / 1001) < 0.01:
+        return f"{frames * 1001}/24000s"
+    return f"{frames * 100}/{fps_rounded * 100}s"
 
 
 def generate_pipeline_fcpxml(segments, video_path, output_path):
