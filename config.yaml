@@ -1,5 +1,6 @@
 style:
   font_name: "A P-OTF A1Gothic StdN"
+  font_name_en: "Helvetica"
   font_size: 35
   primary_color: "&H00FFFFFF"
   outline_color: "&H00000000"

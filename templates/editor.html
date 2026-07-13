@@ -165,15 +165,24 @@ video { width: 100%; border-radius: 6px; background: #000; }
       </div>
       <div class="style-controls">
         <div class="style-field">
-          <label>フォント</label>
+          <label>日本語フォント</label>
           <select id="styleFont" onchange="updatePreview()">
             <option value="A P-OTF A1Gothic StdN">A1ゴシック</option>
             <option value="Hiragino Sans">ヒラギノ角ゴ</option>
             <option value="Hiragino Mincho ProN">ヒラギノ明朝</option>
             <option value="YuGothic">游ゴシック</option>
             <option value="YuMincho">游明朝</option>
+          </select>
+        </div>
+        <div class="style-field">
+          <label>英語フォント</label>
+          <select id="styleFontEn" onchange="updatePreview()">
             <option value="Helvetica">Helvetica</option>
             <option value="Arial">Arial</option>
+            <option value="Futura">Futura</option>
+            <option value="Avenir">Avenir</option>
+            <option value="Gill Sans">Gill Sans</option>
+            <option value="A P-OTF A1Gothic StdN">A1ゴシック (同じ)</option>
           </select>
         </div>
         <div class="style-field">
@@ -385,6 +394,7 @@ function updatePreview() {
   if (!el) return;
 
   const font = document.getElementById('styleFont').value;
+  const fontEn = document.getElementById('styleFontEn').value;
   const size = parseInt(document.getElementById('styleFontSize').value);
   const posY = parseInt(document.getElementById('stylePosY').value);
   const posX = parseInt(document.getElementById('stylePosX').value);
@@ -396,8 +406,9 @@ function updatePreview() {
   document.getElementById('posXVal').textContent = posX;
   document.getElementById('outlineVal').textContent = outline;
 
-  const previewSize = Math.max(12, Math.round(size * box.offsetWidth / 1920 * 2));
-  el.style.fontFamily = `"${font}", sans-serif`;
+  const scale = box.offsetHeight / 1080;
+  const previewSize = Math.max(10, Math.round(size * scale * 1.333));
+  el.style.fontFamily = `"${fontEn}", "${font}", sans-serif`;
   el.style.fontSize = previewSize + 'px';
   el.style.fontWeight = bold ? '700' : '400';
 
@@ -420,6 +431,7 @@ function updatePreview() {
 async function saveStyle() {
   const style = {
     font_name: document.getElementById('styleFont').value,
+    font_name_en: document.getElementById('styleFontEn').value,
     font_size: parseInt(document.getElementById('styleFontSize').value),
     position_y: parseInt(document.getElementById('stylePosY').value),
     position_x: parseInt(document.getElementById('stylePosX').value),
@@ -443,10 +455,15 @@ async function saveStyle() {
 // Set initial font dropdown value
 (function() {
   const fontSelect = document.getElementById('styleFont');
+  const fontEnSelect = document.getElementById('styleFontEn');
   if (fontSelect) {
     const configFont = {{ (style.font_name or 'A P-OTF A1Gothic StdN') | tojson }};
+    const configFontEn = {{ (style.font_name_en or 'Helvetica') | tojson }};
     for (const opt of fontSelect.options) {
       if (opt.value === configFont) { opt.selected = true; break; }
+    }
+    for (const opt of fontEnSelect.options) {
+      if (opt.value === configFontEn) { opt.selected = true; break; }
     }
     updatePreview();
   }

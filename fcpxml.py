@@ -1,6 +1,7 @@
 """FCPXML generation for Final Cut Pro."""
 
 import os
+import re
 import subprocess
 import xml.etree.ElementTree as ET
 from xml.dom import minidom
@@ -44,14 +45,64 @@ def _seconds_to_fcpxml_time(seconds, fps=30):
     return f"{frames * 100}/{fps_rounded * 100}s"
 
 
-def _add_position_param(title_el, style_config):
-    """Add position parameter to a title element."""
-    pos_x = style_config.get("position_x", 0)
-    pos_y = style_config.get("position_y", -85)
-    if pos_x != 0 or pos_y != 0:
+def _split_text_runs(text):
+    """Split text into (is_ascii, chunk) runs for dual-font rendering."""
+    runs = []
+    for match in re.finditer(r'[A-Za-z0-9\s\.\,\!\?\-\:\;\'\"\(\)\[\]\/\@\#\$\%\&\*\+\=]+|[^A-Za-z0-9\s\.\,\!\?\-\:\;\'\"\(\)\[\]\/\@\#\$\%\&\*\+\=]+', text):
+        chunk = match.group()
+        is_ascii = bool(re.match(r'^[A-Za-z0-9]', chunk))
+        runs.append((is_ascii, chunk))
+    return runs if runs else [(False, text)]
+
+
+def _add_text_with_dual_font(title_el, seg_text, idx, style_config):
+    """Add text element with separate fonts for Japanese and English."""
+    font_ja = style_config.get("font_name", "A P-OTF A1Gothic StdN")
+    font_en = style_config.get("font_name_en", font_ja)
+    font_size = str(style_config.get("font_size", 35))
+    bold_val = "1" if style_config.get("bold", True) else "0"
+    outline = str(style_config.get("outline_width", 3))
+
+    text_el = ET.SubElement(title_el, "text")
+
+    if font_en == font_ja:
+        ts = ET.SubElement(text_el, "text-style", ref=f"ts{idx}_ja")
+        ts.text = seg_text
+        tsd = ET.SubElement(title_el, "text-style-def", id=f"ts{idx}_ja")
+        ET.SubElement(tsd, "text-style",
+                      font=font_ja, fontSize=font_size,
+                      fontColor="1 1 1 1", bold=bold_val,
+                      strokeColor="0 0 0 1", strokeWidth=outline,
+                      alignment="center")
+        return
+
+    runs = _split_text_runs(seg_text)
+    for r_idx, (is_ascii, chunk) in enumerate(runs):
+        ref_id = f"ts{idx}_{'en' if is_ascii else 'ja'}_{r_idx}"
+        ts = ET.SubElement(text_el, "text-style", ref=ref_id)
+        ts.text = chunk
+        font = font_en if is_ascii else font_ja
+        tsd = ET.SubElement(title_el, "text-style-def", id=ref_id)
+        ET.SubElement(tsd, "text-style",
+                      font=font, fontSize=font_size,
+                      fontColor="1 1 1 1", bold=bold_val,
+                      strokeColor="0 0 0 1", strokeWidth=outline,
+                      alignment="center")
+
+
+def _add_position_param(title_el, style_config, width=1920, height=1080):
+    """Add position parameter to a title element.
+
+    Converts percentage values (-100~100) to pixel coordinates from center.
+    """
+    pos_x_pct = style_config.get("position_x", 0)
+    pos_y_pct = style_config.get("position_y", -85)
+    pos_x_px = round(pos_x_pct / 100 * (width / 2))
+    pos_y_px = round(pos_y_pct / 100 * (height / 2))
+    if pos_x_px != 0 or pos_y_px != 0:
         ET.SubElement(title_el, "param",
                       name="Position", key="9999/999166631/999166633/1/100/101",
-                      value=f"{pos_x} {pos_y}")
+                      value=f"{pos_x_px} {pos_y_px}")
 
 
 def generate_pipeline_fcpxml(segments, video_path, output_path, style_config=None):
@@ -95,16 +146,18 @@ def generate_pipeline_fcpxml(segments, video_path, output_path, style_config=Non
         title = ET.SubElement(clip, "title", ref="r3", lane="1",
                               name=f"Telop {i + 1}", offset=offset, duration=seg_dur)
         if style_config:
-            _add_position_param(title, style_config)
-        text = ET.SubElement(title, "text")
-        text_style = ET.SubElement(text, "text-style", ref=f"ts{i + 1}")
-        text_style.text = seg["text"]
-        text_style_def = ET.SubElement(title, "text-style-def", id=f"ts{i + 1}")
-        ET.SubElement(text_style_def, "text-style",
-                      font="Helvetica", fontSize="48",
-                      fontColor="1 1 1 1", bold="1",
-                      strokeColor="0 0 0 1", strokeWidth="2",
-                      alignment="center")
+            _add_position_param(title, style_config, width, height)
+            _add_text_with_dual_font(title, seg["text"], i + 1, style_config)
+        else:
+            text = ET.SubElement(title, "text")
+            ts = ET.SubElement(text, "text-style", ref=f"ts{i + 1}")
+            ts.text = seg["text"]
+            tsd = ET.SubElement(title, "text-style-def", id=f"ts{i + 1}")
+            ET.SubElement(tsd, "text-style",
+                          font="Helvetica", fontSize="48",
+                          fontColor="1 1 1 1", bold="1",
+                          strokeColor="0 0 0 1", strokeWidth="2",
+                          alignment="center")
 
     xml_str = minidom.parseString(ET.tostring(root, encoding="unicode")).toprettyxml(indent="  ")
     lines = [l for l in xml_str.split("\n") if l.strip()]
@@ -152,26 +205,13 @@ def generate_styled_fcpxml(segments, video_path, output_path, style_config):
     clip = ET.SubElement(spine, "asset-clip", ref="r2", name=os.path.basename(video_path),
                          duration=total_dur, start="0/1s", offset="0/1s")
 
-    font = style_config.get("font_name", "A P-OTF A1Gothic StdN")
-    font_size = style_config.get("font_size", 35)
-
     for i, seg in enumerate(segments):
         offset = _seconds_to_fcpxml_time(seg["start"], fps)
         seg_dur = _seconds_to_fcpxml_time(seg["end"] - seg["start"], fps)
         title = ET.SubElement(clip, "title", ref="r3", lane="1",
                               name=f"Telop {i + 1}", offset=offset, duration=seg_dur)
-        _add_position_param(title, style_config)
-        text = ET.SubElement(title, "text")
-        text_style = ET.SubElement(text, "text-style", ref=f"ts{i + 1}")
-        text_style.text = seg["text"]
-        text_style_def = ET.SubElement(title, "text-style-def", id=f"ts{i + 1}")
-        bold_val = "1" if style_config.get("bold", True) else "0"
-        ET.SubElement(text_style_def, "text-style",
-                      font=font, fontSize=str(font_size),
-                      fontColor="1 1 1 1", bold=bold_val,
-                      strokeColor="0 0 0 1",
-                      strokeWidth=str(style_config.get("outline_width", 3)),
-                      alignment="center")
+        _add_position_param(title, style_config, width, height)
+        _add_text_with_dual_font(title, seg["text"], i + 1, style_config)
 
     xml_str = minidom.parseString(ET.tostring(root, encoding="unicode")).toprettyxml(indent="  ")
     lines = [l for l in xml_str.split("\n") if l.strip()]
