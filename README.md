@@ -39,6 +39,19 @@ brew --version
 brew install git python ffmpeg
 ```
 
+### パスを通す
+
+Homebrewで入れたPythonにパスが通っていない場合があります。以下を実行してください。
+
+```bash
+# zsh（macOSのデフォルト）の場合
+echo 'export PATH="/opt/homebrew/bin:$PATH"' >> ~/.zshrc
+source ~/.zshrc
+
+# 確認（バージョンが表示されればOK）
+python3 --version
+```
+
 ### Auto Telop をダウンロード
 
 ```bash
@@ -47,14 +60,18 @@ git clone https://github.com/kazuu234/auto-telop.git
 cd auto-telop
 ```
 
-### 必要なライブラリをインストール
+### 仮想環境を作成してライブラリをインストール
 
 ```bash
+python3 -m venv venv
+source venv/bin/activate
 pip install -r requirements.txt
 ```
 
 openai-whisper, flask, ffmpeg-python, pyyaml がインストールされます。
 初回は Whisper のモデルダウンロード（約1.5GB）が入るため数分かかります。
+
+> **注意：** 2回目以降の利用時も、先に `cd ~/auto-telop && source venv/bin/activate` を実行してから使ってください。
 
 ## 動画を文字起こしする
 

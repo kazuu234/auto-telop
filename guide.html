@@ -368,6 +368,18 @@
       <pre><span class="prompt">$</span> brew install git python ffmpeg</pre>
     </div>
 
+    <h3 style="font-size:15px; margin:20px 0 8px; font-weight:700;">パスを通す</h3>
+    <p>Homebrewで入れたPythonにパスが通っていない場合があります。以下を実行してください。</p>
+    <div class="terminal">
+      <div class="terminal-bar"><div class="terminal-dot r"></div><div class="terminal-dot y"></div><div class="terminal-dot g"></div></div>
+      <pre><span class="comment"># zsh（macOSのデフォルト）の場合</span>
+<span class="prompt">$</span> echo 'export PATH="/opt/homebrew/bin:$PATH"' >> ~/.zshrc
+<span class="prompt">$</span> source ~/.zshrc
+
+<span class="comment"># 確認（バージョンが表示されればOK）</span>
+<span class="prompt">$</span> python3 --version</pre>
+    </div>
+
     <h3 style="font-size:15px; margin:20px 0 8px; font-weight:700;">Auto Telop をダウンロード</h3>
     <div class="terminal">
       <div class="terminal-bar"><div class="terminal-dot r"></div><div class="terminal-dot y"></div><div class="terminal-dot g"></div></div>
@@ -376,13 +388,19 @@
 <span class="prompt">$</span> cd auto-telop</pre>
     </div>
 
-    <h3 style="font-size:15px; margin:20px 0 8px; font-weight:700;">必要なライブラリをインストール</h3>
+    <h3 style="font-size:15px; margin:20px 0 8px; font-weight:700;">仮想環境を作成してライブラリをインストール</h3>
     <div class="terminal">
       <div class="terminal-bar"><div class="terminal-dot r"></div><div class="terminal-dot y"></div><div class="terminal-dot g"></div></div>
-      <pre><span class="prompt">$</span> pip install -r requirements.txt
+      <pre><span class="prompt">$</span> python3 -m venv venv
+<span class="prompt">$</span> source venv/bin/activate
+<span class="prompt">$</span> pip install -r requirements.txt
 <span class="output">
 openai-whisper, flask, ffmpeg-python, pyyaml がインストールされます。
 初回は Whisper のモデルダウンロード（約1.5GB）が入るため数分かかります。</span></pre>
+    </div>
+
+    <div class="callout">
+      <strong>2回目以降の利用時も</strong>、先に <code>cd ~/auto-telop && source venv/bin/activate</code> を実行してから使ってください。
     </div>
 
     <div class="callout success">
