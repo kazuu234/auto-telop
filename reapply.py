@@ -31,7 +31,11 @@ def reapply(project_dir, base_name):
     with open(hook_path, encoding="utf-8") as f:
         hook = json.load(f)
 
-    generate_pipeline_fcpxml(segments, hook["video_path"], output_path)
+    from transcribe import load_config
+    config = load_config()
+    style = config.get("style", {})
+
+    generate_pipeline_fcpxml(segments, hook["video_path"], output_path, style_config=style)
     print(f"Generated: {output_path}")
     return output_path, segments
 

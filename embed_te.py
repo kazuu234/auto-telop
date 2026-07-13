@@ -11,7 +11,8 @@ from fcpxml import generate_styled_fcpxml
 
 
 def embed_telop(project_dir, base_name):
-    config = yaml.safe_load(open("config.yaml"))
+    from transcribe import load_config
+    config = load_config()
     style = config["style"]
 
     segments_path = os.path.join(project_dir, f"{base_name}_segments.json")

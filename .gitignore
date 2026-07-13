@@ -1,0 +1,5 @@
+config.yaml
+projects/
+venv/
+__pycache__/
+*.pyc

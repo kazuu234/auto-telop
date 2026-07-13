@@ -47,7 +47,8 @@ def index():
             if i < len(lines) and lines[i]:
                 seg["text"] = lines[i]
 
-    config = yaml.safe_load(open(os.path.join(BASE_DIR, "config.yaml")))
+    from transcribe import load_config
+    config = load_config()
     style = config.get("style", {})
 
     return render_template("editor.html", project=project, segments=segments,
@@ -145,7 +146,8 @@ def split_segment():
 
 @app.route("/api/style", methods=["GET"])
 def get_style():
-    config = yaml.safe_load(open(os.path.join(BASE_DIR, "config.yaml")))
+    from transcribe import load_config
+    config = load_config()
     return jsonify(config.get("style", {}))
 
 
@@ -153,7 +155,8 @@ def get_style():
 def update_style():
     new_style = request.json
     config_path = os.path.join(BASE_DIR, "config.yaml")
-    config = yaml.safe_load(open(config_path))
+    from transcribe import load_config
+    config = load_config()
     config["style"] = new_style
     with open(config_path, "w", encoding="utf-8") as f:
         yaml.dump(config, f, allow_unicode=True, default_flow_style=False)

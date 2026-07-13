@@ -8,7 +8,14 @@ import yaml
 
 
 def load_config(path="config.yaml"):
-    with open(path) as f:
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+    config_path = os.path.join(base_dir, path)
+    default_path = os.path.join(base_dir, "config.default.yaml")
+    if not os.path.exists(config_path):
+        import shutil
+        shutil.copy(default_path, config_path)
+        print(f"Created {path} from config.default.yaml")
+    with open(config_path) as f:
         return yaml.safe_load(f)
 
 
