@@ -10,6 +10,8 @@ import os
 import glob
 import shutil
 
+import media_env  # noqa: F401 — patches PATH so ffmpeg/ffprobe resolve from Finder
+
 import yaml
 from flask import Flask, render_template, request, jsonify, send_file
 

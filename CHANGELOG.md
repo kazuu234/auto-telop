@@ -1,5 +1,14 @@
 # Changelog
 
+## v1.0.2
+
+**「ffmpeg が見つからない（No such file or directory）」を修正しました。**
+
+### 修正
+
+- **Finderからの起動時に ffmpeg / ffprobe を見つけられない不具合を修正** — Finder（.app）から起動したアプリはターミナルの `PATH` を引き継がないため、Homebrewで入れた `ffmpeg`（`/opt/homebrew/bin` など）が見つからず、抽出が `No such file or directory: 'ffmpeg'` で失敗していました。起動時に主要なインストール先を `PATH` に追加するようにしました（`/opt/homebrew/bin`, `/usr/local/bin`, `/opt/local/bin` など）。
+  - 引き続き、動画の抽出には `ffmpeg` が必要です。未インストールの場合は `brew install ffmpeg` を実行してください。
+
 ## v1.0.1
 
 **「壊れている」問題と、ファイル選択が効かない不具合を修正しました。**
