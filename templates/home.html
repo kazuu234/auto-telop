@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Auto Telop</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+  background: #1a1a1a; color: #e0e0e0; min-height: 100vh;
+}
+.wrap { max-width: 860px; margin: 0 auto; padding: 24px 20px 60px; }
+
+header {
+  display: flex; align-items: center; gap: 12px; margin-bottom: 20px;
+}
+header h1 { font-size: 22px; font-weight: 700; }
+header .ver { font-size: 12px; color: #777; }
+header .spacer { margin-left: auto; }
+.link-btn {
+  background: none; border: 1px solid #444; color: #bbb;
+  padding: 5px 12px; border-radius: 6px; font-size: 12px; cursor: pointer;
+}
+.link-btn:hover { background: #2a2a2a; }
+
+/* Drop zone */
+.dropzone {
+  border: 2px dashed #3a3a3a; border-radius: 12px;
+  padding: 34px 20px; text-align: center; cursor: pointer;
+  transition: all 0.15s; margin-bottom: 24px; background: #202020;
+}
+.dropzone:hover { border-color: #0a84ff; background: #1e2a3a; }
+.dropzone.dragover { border-color: #0a84ff; background: #16324f; }
+.dropzone .big { font-size: 15px; color: #ddd; margin-bottom: 6px; }
+.dropzone .sub { font-size: 12px; color: #777; }
+.dropzone .plus { font-size: 32px; color: #0a84ff; margin-bottom: 8px; }
+
+.section-title {
+  font-size: 12px; color: #888; text-transform: uppercase;
+  letter-spacing: 0.05em; margin: 8px 4px 10px;
+}
+
+/* Entry cards */
+.entry {
+  display: flex; align-items: center; gap: 14px;
+  background: #222; border: 1px solid #2e2e2e; border-radius: 10px;
+  padding: 14px 16px; margin-bottom: 10px; transition: background 0.1s;
+}
+.entry.clickable { cursor: pointer; }
+.entry.clickable:hover { background: #282828; border-color: #0a84ff; }
+.entry .icon { font-size: 22px; flex-shrink: 0; width: 30px; text-align: center; }
+.entry .body { flex: 1; min-width: 0; }
+.entry .name {
+  font-size: 15px; font-weight: 600; color: #eee;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.entry .meta { font-size: 12px; color: #888; margin-top: 3px; }
+.entry .status { font-size: 12px; color: #0a84ff; margin-top: 3px; }
+.entry .status.error { color: #ff6b6b; }
+.entry .del {
+  background: none; border: none; color: #666; cursor: pointer;
+  font-size: 18px; padding: 4px 8px; border-radius: 6px; flex-shrink: 0;
+}
+.entry .del:hover { background: #3a2a2a; color: #ff6b6b; }
+.chev { color: #666; font-size: 18px; flex-shrink: 0; }
+
+/* Spinner */
+.spinner {
+  width: 16px; height: 16px; border: 2px solid #33507a;
+  border-top-color: #0a84ff; border-radius: 50%;
+  display: inline-block; vertical-align: -3px; margin-right: 6px;
+  animation: spin 0.8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.empty { text-align: center; color: #666; padding: 30px 0; font-size: 14px; }
+
+.toast {
+  position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+  background: #0a84ff; color: #fff; padding: 10px 20px; border-radius: 8px;
+  font-size: 13px; display: none; z-index: 100; max-width: 90%;
+}
+
+/* Update banner / modal */
+.update-banner {
+  background: #1e3a2e; border: 1px solid #2e6b4a; border-radius: 10px;
+  padding: 12px 16px; margin-bottom: 18px; display: none;
+  align-items: center; gap: 12px; font-size: 13px;
+}
+.update-banner .grow { flex: 1; }
+.update-banner button {
+  background: #30d158; border: none; color: #fff; font-weight: 600;
+  padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 12px;
+}
+.update-banner button:hover { background: #28b84c; }
+.browser-note {
+  font-size: 12px; color: #888; background: #262626; border-radius: 8px;
+  padding: 10px 14px; margin-bottom: 18px; display: none;
+}
+.browser-note input {
+  width: 100%; margin-top: 8px; padding: 6px 10px; border: 1px solid #444;
+  border-radius: 6px; background: #1e1e1e; color: #e0e0e0; font-size: 13px;
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>🎬 Auto Telop</h1>
+    <span class="ver">v{{ version }}</span>
+    <span class="spacer"></span>
+    <button class="link-btn" id="checkUpdateBtn" onclick="checkUpdate()">更新を確認</button>
+  </header>
+
+  <div class="update-banner" id="updateBanner">
+    <span class="grow" id="updateText"></span>
+    <button id="updateBtn" onclick="doUpdate()">ダウンロード</button>
+  </div>
+
+  <div class="dropzone" id="dropzone" onclick="pickVideos()">
+    <div class="plus">＋</div>
+    <div class="big">動画を選択</div>
+    <div class="sub">ここに動画をドラッグ&ドロップ（複数可）</div>
+  </div>
+
+  <div class="browser-note" id="browserNote">
+    ブラウザから開いています。ネイティブのファイル選択が使えないため、動画ファイルのフルパスを入力してEnterで追加してください。
+    <input type="text" id="pathInput" placeholder="/Users/you/Desktop/video.mp4  (複数はカンマ区切り)"
+           onkeydown="if(event.key==='Enter')addByPath()">
+  </div>
+
+  <div class="section-title">ライブラリ</div>
+  <div id="entries"></div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const IS_NATIVE = !!(window.pywebview && window.pywebview.api);
+
+function toast(msg, isError) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.style.background = isError ? '#ff3b30' : '#0a84ff';
+  t.style.display = 'block';
+  clearTimeout(t._t);
+  t._t = setTimeout(() => t.style.display = 'none', 3000);
+}
+
+function fmtDuration(sec) {
+  if (!sec && sec !== 0) return '';
+  const m = Math.floor(sec / 60);
+  const s = Math.round(sec % 60);
+  return m > 0 ? `${m}分${s}秒` : `${s}秒`;
+}
+
+// ---- Adding videos ----
+async function pickVideos() {
+  if (IS_NATIVE) {
+    try {
+      const paths = await window.pywebview.api.pick_videos();
+      if (paths && paths.length) startTranscribe(paths);
+    } catch (e) { toast('選択に失敗しました: ' + e, true); }
+  } else {
+    document.getElementById('pathInput').focus();
+  }
+}
+
+function addByPath() {
+  const val = document.getElementById('pathInput').value.trim();
+  if (!val) return;
+  const paths = val.split(',').map(s => s.trim()).filter(Boolean);
+  document.getElementById('pathInput').value = '';
+  startTranscribe(paths);
+}
+
+async function startTranscribe(paths) {
+  const res = await fetch('/api/transcribe', {
+    method: 'POST', headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({paths}),
+  });
+  const data = await res.json();
+  if (data.rejected && data.rejected.length) {
+    toast('見つからないファイル: ' + data.rejected.join(', '), true);
+  }
+  if (data.jobs && data.jobs.length) {
+    toast(`${data.jobs.length}件の抽出を開始しました`);
+  }
+  refresh();
+}
+
+// ---- Drag & drop ----
+const dz = document.getElementById('dropzone');
+['dragenter', 'dragover'].forEach(ev =>
+  dz.addEventListener(ev, e => { e.preventDefault(); dz.classList.add('dragover'); }));
+['dragleave', 'drop'].forEach(ev =>
+  dz.addEventListener(ev, e => { e.preventDefault(); dz.classList.remove('dragover'); }));
+// Prevent the whole window from navigating when a file is dropped outside the zone.
+window.addEventListener('dragover', e => e.preventDefault());
+window.addEventListener('drop', e => e.preventDefault());
+
+dz.addEventListener('drop', e => {
+  const files = Array.from(e.dataTransfer.files || []);
+  const paths = files
+    .map(f => f.pywebviewFullPath || f.path || null)
+    .filter(Boolean);
+  if (paths.length) {
+    startTranscribe(paths);
+  } else if (files.length) {
+    // Browser mode can't read full paths.
+    toast('フルパスを取得できませんでした。アプリ版をご利用ください', true);
+  }
+});
+
+// ---- Rendering ----
+function renderEntries(projects, jobs) {
+  const el = document.getElementById('entries');
+  const activeJobs = jobs.filter(j => j.status === 'queued' || j.status === 'processing');
+  const errorJobs = jobs.filter(j => j.status === 'error');
+  const doneNames = new Set(projects.map(p => p.base_name));
+
+  let html = '';
+
+  activeJobs.forEach(j => {
+    const isProc = j.status === 'processing';
+    html += `<div class="entry">
+      <div class="icon">${isProc ? '<span class="spinner"></span>' : '⏳'}</div>
+      <div class="body">
+        <div class="name">${escapeHtml(j.base_name)}</div>
+        <div class="status">${isProc ? '' : '順番待ち'}${escapeHtml(j.stage || '')}</div>
+      </div>
+    </div>`;
+  });
+
+  errorJobs.forEach(j => {
+    html += `<div class="entry">
+      <div class="icon">⚠️</div>
+      <div class="body">
+        <div class="name">${escapeHtml(j.base_name)}</div>
+        <div class="status error">失敗: ${escapeHtml(j.error || '')}</div>
+      </div>
+    </div>`;
+  });
+
+  projects.forEach(p => {
+    const parts = [];
+    if (p.refined_count != null) parts.push(`${p.refined_count}行`);
+    if (p.video_duration) parts.push(fmtDuration(p.video_duration));
+    if (p.created_at) parts.push(p.created_at);
+    html += `<div class="entry clickable" onclick="openEditor('${encodeURIComponent(p.base_name)}')">
+      <div class="icon">🎬</div>
+      <div class="body">
+        <div class="name">${escapeHtml(p.base_name)}</div>
+        <div class="meta">${parts.join(' ・ ')}</div>
+      </div>
+      <button class="del" title="削除"
+              onclick="event.stopPropagation(); deleteProject('${encodeURIComponent(p.base_name)}')">🗑</button>
+      <span class="chev">›</span>
+    </div>`;
+  });
+
+  if (!html) {
+    html = '<div class="empty">まだ動画がありません。上のエリアに動画を追加してください。</div>';
+  }
+  el.innerHTML = html;
+}
+
+function escapeHtml(s) {
+  return String(s == null ? '' : s)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+function openEditor(nameEnc) {
+  window.location.href = '/editor?project=' + nameEnc;
+}
+
+async function deleteProject(nameEnc) {
+  const name = decodeURIComponent(nameEnc);
+  if (!confirm(`「${name}」を削除しますか？（元に戻せません）`)) return;
+  await fetch('/api/project/' + nameEnc, {method: 'DELETE'});
+  toast('削除しました');
+  refresh();
+}
+
+let hasActive = false;
+async function refresh() {
+  try {
+    const res = await fetch('/api/projects');
+    const data = await res.json();
+    renderEntries(data.projects || [], data.jobs || []);
+    hasActive = (data.jobs || []).some(j => j.status === 'queued' || j.status === 'processing');
+  } catch (e) { /* ignore transient errors */ }
+}
+
+// Poll faster while jobs are running, slower when idle.
+function loop() {
+  refresh().finally(() => setTimeout(loop, hasActive ? 1200 : 4000));
+}
+
+// ---- Update ----
+let updateInfo = null;
+async function checkUpdate() {
+  const btn = document.getElementById('checkUpdateBtn');
+  btn.textContent = '確認中...';
+  try {
+    const res = await fetch('/api/update/check');
+    updateInfo = await res.json();
+    const banner = document.getElementById('updateBanner');
+    if (updateInfo.has_update) {
+      document.getElementById('updateText').textContent =
+        `新しいバージョン v${updateInfo.latest} があります（現在 v${updateInfo.current}）`;
+      banner.style.display = 'flex';
+      toast('アップデートがあります');
+    } else if (updateInfo.error) {
+      toast('更新確認に失敗しました', true);
+    } else {
+      toast('最新版です（v' + updateInfo.current + '）');
+    }
+  } catch (e) {
+    toast('更新確認に失敗しました', true);
+  } finally {
+    btn.textContent = '更新を確認';
+  }
+}
+
+async function doUpdate() {
+  if (!updateInfo || !updateInfo.download_url) return;
+  const btn = document.getElementById('updateBtn');
+  btn.textContent = 'ダウンロード中...';
+  btn.disabled = true;
+  try {
+    const res = await fetch('/api/update/download', {
+      method: 'POST', headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({
+        download_url: updateInfo.download_url,
+        asset_name: updateInfo.asset_name,
+      }),
+    });
+    const data = await res.json();
+    if (data.ok) {
+      if (IS_NATIVE && window.pywebview.api.reveal_path) {
+        try { await window.pywebview.api.reveal_path(data.path); } catch (e) {}
+      }
+      document.getElementById('updateText').textContent =
+        'ダウンロード完了。ダウンロードした新しいアプリに置き換えてください: ' + data.path;
+      btn.style.display = 'none';
+    } else {
+      toast('ダウンロード失敗: ' + (data.error || ''), true);
+      btn.textContent = 'ダウンロード'; btn.disabled = false;
+    }
+  } catch (e) {
+    toast('ダウンロード失敗', true);
+    btn.textContent = 'ダウンロード'; btn.disabled = false;
+  }
+}
+
+// ---- Init ----
+if (!IS_NATIVE) document.getElementById('browserNote').style.display = 'block';
+loop();
+</script>
+</body>
+</html>
