@@ -166,6 +166,19 @@ segment:
   max_duration: 4.0 # 1セグメントの最大秒数
 ```
 
+## アプリケーションの更新
+
+新しいバージョンが公開されたら、以下のコマンドで更新できます。
+
+```bash
+cd ~/auto-telop
+git pull
+source venv/bin/activate
+pip install -r requirements.txt
+```
+
+> **補足：** `git pull` でコードを最新に取得し、`pip install` で新しく追加された依存ライブラリがあればインストールされます。既存のプロジェクトデータ（`projects/` フォルダ内）はそのまま残ります。
+
 ## よくあるトラブル
 
 ### `command not found: python` と出る
