@@ -60,6 +60,10 @@ def generate_pipeline_fcpxml(segments, video_path, output_path):
                           hasVideo="1", hasAudio="1", format="r1")
     ET.SubElement(asset, "media-rep", kind="original-media", src=video_url)
 
+    ET.SubElement(resources, "effect", id="r3",
+                  name="Basic Title",
+                  uid=".../Titles.localized/Bumper:Opener.localized/Basic Title.localized/Basic Title.moti")
+
     library = ET.SubElement(root, "library")
     event = ET.SubElement(library, "event", name="Auto Telop")
     project = ET.SubElement(event, "project", name=os.path.splitext(os.path.basename(video_path))[0])
@@ -73,11 +77,17 @@ def generate_pipeline_fcpxml(segments, video_path, output_path):
     for i, seg in enumerate(segments):
         offset = _seconds_to_fcpxml_time(seg["start"], fps)
         seg_dur = _seconds_to_fcpxml_time(seg["end"] - seg["start"], fps)
-        title = ET.SubElement(clip, "title", ref="r1", lane="1",
+        title = ET.SubElement(clip, "title", ref="r3", lane="1",
                               name=f"Telop {i + 1}", offset=offset, duration=seg_dur)
         text = ET.SubElement(title, "text")
         text_style = ET.SubElement(text, "text-style", ref=f"ts{i + 1}")
         text_style.text = seg["text"]
+        text_style_def = ET.SubElement(title, "text-style-def", id=f"ts{i + 1}")
+        ET.SubElement(text_style_def, "text-style",
+                      font="Helvetica", fontSize="48",
+                      fontColor="1 1 1 1", bold="1",
+                      strokeColor="0 0 0 1", strokeWidth="2",
+                      alignment="center")
 
     xml_str = minidom.parseString(ET.tostring(root, encoding="unicode")).toprettyxml(indent="  ")
     lines = [l for l in xml_str.split("\n") if l.strip()]
@@ -111,6 +121,10 @@ def generate_styled_fcpxml(segments, video_path, output_path, style_config):
                           hasVideo="1", hasAudio="1", format="r1")
     ET.SubElement(asset, "media-rep", kind="original-media", src=video_url)
 
+    ET.SubElement(resources, "effect", id="r3",
+                  name="Basic Title",
+                  uid=".../Titles.localized/Bumper:Opener.localized/Basic Title.localized/Basic Title.moti")
+
     library = ET.SubElement(root, "library")
     event = ET.SubElement(library, "event", name="Auto Telop")
     project = ET.SubElement(event, "project", name=os.path.splitext(os.path.basename(video_path))[0])
@@ -127,7 +141,7 @@ def generate_styled_fcpxml(segments, video_path, output_path, style_config):
     for i, seg in enumerate(segments):
         offset = _seconds_to_fcpxml_time(seg["start"], fps)
         seg_dur = _seconds_to_fcpxml_time(seg["end"] - seg["start"], fps)
-        title = ET.SubElement(clip, "title", ref="r1", lane="1",
+        title = ET.SubElement(clip, "title", ref="r3", lane="1",
                               name=f"Telop {i + 1}", offset=offset, duration=seg_dur)
         text = ET.SubElement(title, "text")
         text_style = ET.SubElement(text, "text-style", ref=f"ts{i + 1}")
