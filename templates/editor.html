@@ -161,12 +161,13 @@ video { width: 100%; border-radius: 6px; background: #000; }
     <div class="style-panel">
       <h3>テロップスタイル プレビュー</h3>
       <div class="style-preview-box" id="stylePreviewBox">
-        <div class="style-preview-text" id="stylePreviewText">サンプルテロップ</div>
+        <div class="style-preview-text" id="stylePreviewText">サンプルTELOP テスト</div>
       </div>
       <div class="style-controls">
         <div class="style-field">
           <label>日本語フォント</label>
           <select id="styleFont" onchange="updatePreview()">
+            <option value="Noto Sans JP">Noto Sans JP</option>
             <option value="A P-OTF A1Gothic StdN">A1ゴシック</option>
             <option value="Hiragino Sans">ヒラギノ角ゴ</option>
             <option value="Hiragino Mincho ProN">ヒラギノ明朝</option>
@@ -177,29 +178,37 @@ video { width: 100%; border-radius: 6px; background: #000; }
         <div class="style-field">
           <label>英語フォント</label>
           <select id="styleFontEn" onchange="updatePreview()">
+            <option value="Inter">Inter</option>
             <option value="Helvetica">Helvetica</option>
             <option value="Arial">Arial</option>
             <option value="Futura">Futura</option>
             <option value="Avenir">Avenir</option>
             <option value="Gill Sans">Gill Sans</option>
-            <option value="A P-OTF A1Gothic StdN">A1ゴシック (同じ)</option>
           </select>
         </div>
         <div class="style-field">
-          <label>サイズ: <span id="fontSizeVal">{{ style.font_size or 35 }}</span>pt</label>
-          <input type="range" id="styleFontSize" min="16" max="80" value="{{ style.font_size or 35 }}" oninput="updatePreview()">
+          <label>日本語サイズ: <span id="fontSizeVal">{{ style.font_size or 60 }}</span>pt</label>
+          <input type="range" id="styleFontSize" min="16" max="120" value="{{ style.font_size or 60 }}" oninput="updatePreview()">
         </div>
         <div class="style-field">
-          <label>縦位置: <span id="posYVal">{{ style.position_y if style.position_y is defined else -85 }}</span>%</label>
-          <input type="range" id="stylePosY" min="-100" max="100" value="{{ style.position_y if style.position_y is defined else -85 }}" oninput="updatePreview()">
+          <label>英語サイズ: <span id="fontSizeEnVal">{{ style.font_size_en or 56 }}</span>pt</label>
+          <input type="range" id="styleFontSizeEn" min="16" max="120" value="{{ style.font_size_en or 56 }}" oninput="updatePreview()">
+        </div>
+        <div class="style-field">
+          <label>縦位置: <span id="posYVal">{{ style.position_y if style.position_y is defined else -80 }}</span>%</label>
+          <input type="range" id="stylePosY" min="-100" max="100" value="{{ style.position_y if style.position_y is defined else -80 }}" oninput="updatePreview()">
         </div>
         <div class="style-field">
           <label>横位置: <span id="posXVal">{{ style.position_x or 0 }}</span>%</label>
           <input type="range" id="stylePosX" min="-100" max="100" value="{{ style.position_x or 0 }}" oninput="updatePreview()">
         </div>
         <div class="style-field">
-          <label>縁取り: <span id="outlineVal">{{ style.outline_width or 3 }}</span>px</label>
-          <input type="range" id="styleOutline" min="0" max="8" value="{{ style.outline_width or 3 }}" oninput="updatePreview()">
+          <label>日本語縁取り: <span id="outlineVal">{{ style.outline_width or 6 }}</span>px</label>
+          <input type="range" id="styleOutline" min="0" max="12" value="{{ style.outline_width or 6 }}" oninput="updatePreview()">
+        </div>
+        <div class="style-field">
+          <label>英語縁取り: <span id="outlineEnVal">{{ style.outline_width_en or 5 }}</span>px</label>
+          <input type="range" id="styleOutlineEn" min="0" max="12" value="{{ style.outline_width_en or 5 }}" oninput="updatePreview()">
         </div>
         <div class="style-field">
           <label>太字</label>
@@ -396,12 +405,16 @@ function updatePreview() {
   const font = document.getElementById('styleFont').value;
   const fontEn = document.getElementById('styleFontEn').value;
   const size = parseInt(document.getElementById('styleFontSize').value);
+  const sizeEn = parseInt(document.getElementById('styleFontSizeEn').value);
   const posY = parseInt(document.getElementById('stylePosY').value);
   const posX = parseInt(document.getElementById('stylePosX').value);
   const outline = parseInt(document.getElementById('styleOutline').value);
+  const outlineEn = parseInt(document.getElementById('styleOutlineEn').value);
   const bold = document.getElementById('styleBold').value === 'true';
 
   document.getElementById('fontSizeVal').textContent = size;
+  document.getElementById('fontSizeEnVal').textContent = sizeEn;
+  document.getElementById('outlineEnVal').textContent = outlineEn;
   document.getElementById('posYVal').textContent = posY;
   document.getElementById('posXVal').textContent = posX;
   document.getElementById('outlineVal').textContent = outline;
@@ -433,10 +446,13 @@ async function saveStyle() {
     font_name: document.getElementById('styleFont').value,
     font_name_en: document.getElementById('styleFontEn').value,
     font_size: parseInt(document.getElementById('styleFontSize').value),
+    font_size_en: parseInt(document.getElementById('styleFontSizeEn').value),
     position_y: parseInt(document.getElementById('stylePosY').value),
     position_x: parseInt(document.getElementById('stylePosX').value),
     outline_width: parseInt(document.getElementById('styleOutline').value),
+    outline_width_en: parseInt(document.getElementById('styleOutlineEn').value),
     bold: document.getElementById('styleBold').value === 'true',
+    bold_en: document.getElementById('styleBold').value === 'true',
     primary_color: '&H00FFFFFF',
     outline_color: '&H00000000',
   };
@@ -457,8 +473,8 @@ async function saveStyle() {
   const fontSelect = document.getElementById('styleFont');
   const fontEnSelect = document.getElementById('styleFontEn');
   if (fontSelect) {
-    const configFont = {{ (style.font_name or 'A P-OTF A1Gothic StdN') | tojson }};
-    const configFontEn = {{ (style.font_name_en or 'Helvetica') | tojson }};
+    const configFont = {{ (style.font_name or 'Noto Sans JP') | tojson }};
+    const configFontEn = {{ (style.font_name_en or 'Inter') | tojson }};
     for (const opt of fontSelect.options) {
       if (opt.value === configFont) { opt.selected = true; break; }
     }

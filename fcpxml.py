@@ -59,7 +59,7 @@ def _build_text_style_attrs(font, font_size, bold_val, outline):
     """Build text-style attributes dict for FCPXML."""
     attrs = {
         "font": font,
-        "fontSize": font_size,
+        "fontSize": str(font_size),
         "fontColor": "1 1 1 1",
         "bold": bold_val,
         "alignment": "center",
@@ -72,31 +72,40 @@ def _build_text_style_attrs(font, font_size, bold_val, outline):
 
 
 def _add_text_with_dual_font(title_el, seg_text, idx, style_config):
-    """Add text element with separate fonts for Japanese and English."""
-    font_ja = style_config.get("font_name", "A P-OTF A1Gothic StdN")
+    """Add text and text-style-def elements (DTD order: text*, text-style-def*)."""
+    font_ja = style_config.get("font_name", "Noto Sans JP")
     font_en = style_config.get("font_name_en", font_ja)
-    font_size = str(style_config.get("font_size", 35))
-    bold_val = "1" if style_config.get("bold", True) else "0"
-    outline = str(style_config.get("outline_width", 3))
+    size_ja = style_config.get("font_size", 60)
+    size_en = style_config.get("font_size_en", size_ja)
+    bold_ja = "1" if style_config.get("bold", True) else "0"
+    bold_en = "1" if style_config.get("bold_en", style_config.get("bold", True)) else "0"
+    outline_ja = style_config.get("outline_width", 6)
+    outline_en = style_config.get("outline_width_en", outline_ja)
 
     text_el = ET.SubElement(title_el, "text")
 
-    if font_en == font_ja:
+    if font_en == font_ja and size_ja == size_en:
         ts = ET.SubElement(text_el, "text-style", ref=f"ts{idx}_ja")
         ts.text = seg_text
         tsd = ET.SubElement(title_el, "text-style-def", id=f"ts{idx}_ja")
-        attrs = _build_text_style_attrs(font_ja, font_size, bold_val, outline)
+        attrs = _build_text_style_attrs(font_ja, size_ja, bold_ja, outline_ja)
         ET.SubElement(tsd, "text-style", **attrs)
         return
 
     runs = _split_text_runs(seg_text)
+    style_defs = []
     for r_idx, (is_ascii, chunk) in enumerate(runs):
         ref_id = f"ts{idx}_{'en' if is_ascii else 'ja'}_{r_idx}"
         ts = ET.SubElement(text_el, "text-style", ref=ref_id)
         ts.text = chunk
-        font = font_en if is_ascii else font_ja
+        if is_ascii:
+            style_defs.append((ref_id, font_en, size_en, bold_en, outline_en))
+        else:
+            style_defs.append((ref_id, font_ja, size_ja, bold_ja, outline_ja))
+
+    for ref_id, font, size, bold, outline in style_defs:
         tsd = ET.SubElement(title_el, "text-style-def", id=ref_id)
-        attrs = _build_text_style_attrs(font, font_size, bold_val, outline)
+        attrs = _build_text_style_attrs(font, size, bold, outline)
         ET.SubElement(tsd, "text-style", **attrs)
 
 
@@ -154,8 +163,8 @@ def generate_pipeline_fcpxml(segments, video_path, output_path, style_config=Non
         title = ET.SubElement(clip, "title", ref="r3", lane="1",
                               name=f"Telop {i + 1}", offset=offset, duration=seg_dur)
         if style_config:
-            _add_position(title, style_config, width, height)
             _add_text_with_dual_font(title, seg["text"], i + 1, style_config)
+            _add_position(title, style_config, width, height)
         else:
             text = ET.SubElement(title, "text")
             ts = ET.SubElement(text, "text-style", ref=f"ts{i + 1}")
@@ -218,8 +227,8 @@ def generate_styled_fcpxml(segments, video_path, output_path, style_config):
         seg_dur = _seconds_to_fcpxml_time(seg["end"] - seg["start"], fps)
         title = ET.SubElement(clip, "title", ref="r3", lane="1",
                               name=f"Telop {i + 1}", offset=offset, duration=seg_dur)
-        _add_position(title, style_config, width, height)
         _add_text_with_dual_font(title, seg["text"], i + 1, style_config)
+        _add_position(title, style_config, width, height)
 
     xml_str = minidom.parseString(ET.tostring(root, encoding="unicode")).toprettyxml(indent="  ")
     lines = [l for l in xml_str.split("\n") if l.strip()]

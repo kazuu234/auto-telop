@@ -1,13 +1,14 @@
 style:
-  font_name: "A P-OTF A1Gothic StdN"
-  font_name_en: "Helvetica"
-  font_size: 35
-  primary_color: "&H00FFFFFF"
-  outline_color: "&H00000000"
-  outline_width: 3
+  font_name: "Noto Sans JP"
+  font_name_en: "Inter"
+  font_size: 60
+  font_size_en: 56
   bold: true
-  position_y: -85            # 縦位置 (% of height, -100=最下部 〜 0=中央 〜 100=最上部)
-  position_x: 0              # 横位置 (% of width, -100=左端 〜 0=中央 〜 100=右端)
+  bold_en: true
+  outline_width: 6
+  outline_width_en: 5
+  position_y: -80              # 縦位置 (% -100=最下部 〜 0=中央)  -80 ≈ 画面下から約10%
+  position_x: 0
 
 whisper:
   model: "medium"
