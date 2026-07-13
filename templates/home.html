@@ -137,7 +137,11 @@ header .spacer { margin-left: auto; }
 <div class="toast" id="toast"></div>
 
 <script>
-const IS_NATIVE = !!(window.pywebview && window.pywebview.api);
+// pywebview injects window.pywebview.api AFTER the page loads (pywebviewready
+// event), so this must be checked live at call time — not cached at parse time.
+function isNative() {
+  return !!(window.pywebview && window.pywebview.api);
+}
 
 function toast(msg, isError) {
   const t = document.getElementById('toast');
@@ -157,12 +161,13 @@ function fmtDuration(sec) {
 
 // ---- Adding videos ----
 async function pickVideos() {
-  if (IS_NATIVE) {
+  if (isNative()) {
     try {
       const paths = await window.pywebview.api.pick_videos();
       if (paths && paths.length) startTranscribe(paths);
     } catch (e) { toast('選択に失敗しました: ' + e, true); }
   } else {
+    document.getElementById('browserNote').style.display = 'block';
     document.getElementById('pathInput').focus();
   }
 }
@@ -208,8 +213,14 @@ dz.addEventListener('drop', e => {
   if (paths.length) {
     startTranscribe(paths);
   } else if (files.length) {
-    // Browser mode can't read full paths.
-    toast('フルパスを取得できませんでした。アプリ版をご利用ください', true);
+    // Some environments don't expose full paths on dropped files.
+    // The native file dialog always does, so route the user there.
+    if (isNative()) {
+      toast('ドラッグ&ドロップで読み込めませんでした。枠をクリックして選択してください', true);
+    } else {
+      toast('フルパスを取得できませんでした。下の欄にパスを入力してください', true);
+      document.getElementById('browserNote').style.display = 'block';
+    }
   }
 });
 
@@ -339,7 +350,7 @@ async function doUpdate() {
     });
     const data = await res.json();
     if (data.ok) {
-      if (IS_NATIVE && window.pywebview.api.reveal_path) {
+      if (isNative() && window.pywebview.api.reveal_path) {
         try { await window.pywebview.api.reveal_path(data.path); } catch (e) {}
       }
       document.getElementById('updateText').textContent =
@@ -356,7 +367,15 @@ async function doUpdate() {
 }
 
 // ---- Init ----
-if (!IS_NATIVE) document.getElementById('browserNote').style.display = 'block';
+// Only reveal the browser fallback note if pywebview never becomes ready.
+// pywebviewready fires once the native API bridge is injected.
+let _pywebviewReady = false;
+window.addEventListener('pywebviewready', () => { _pywebviewReady = true; });
+setTimeout(() => {
+  if (!_pywebviewReady && !isNative()) {
+    document.getElementById('browserNote').style.display = 'block';
+  }
+}, 1500);
 loop();
 </script>
 </body>
