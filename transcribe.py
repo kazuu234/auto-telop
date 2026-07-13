@@ -3,6 +3,8 @@
 import csv
 import json
 import os
+from datetime import datetime
+
 import yaml
 
 
@@ -108,17 +110,29 @@ def save_review_text(segments, output_path):
             f.write(seg["text"] + "\n")
 
 
-def run_pipeline(video_path, project_dir):
-    """Full transcription pipeline: video → segments + files."""
+def run_pipeline(video_path, project_dir, progress_cb=None):
+    """Full transcription pipeline: video → segments + files.
+
+    progress_cb: optional callable(stage_message) for GUI progress updates.
+    """
+    def report(stage):
+        if progress_cb:
+            try:
+                progress_cb(stage)
+            except Exception:
+                pass
+
     config = load_config()
     base = os.path.splitext(os.path.basename(video_path))[0]
 
     os.makedirs(project_dir, exist_ok=True)
 
     print(f"Transcribing with Whisper ({config['whisper']['model']})...")
+    report(f"Whisper文字起こし中 ({config['whisper']['model']})")
     raw_segments = transcribe(video_path, config)
     print(f"Raw segments: {len(raw_segments)}")
 
+    report("セグメント整形中")
     refined, silence_count = refine_segments(raw_segments, config)
     print(f"Refined segments: {len(refined)} (silence gaps: {silence_count})")
 
@@ -136,6 +150,13 @@ def run_pipeline(video_path, project_dir):
     with open(segments_path, "w", encoding="utf-8") as f:
         json.dump(refined, f, ensure_ascii=False, indent=2)
 
+    # Video duration (for the library entry display). Best-effort via ffprobe.
+    try:
+        from fcpxml import _get_video_info
+        video_duration = _get_video_info(video_path)[0]
+    except Exception:
+        video_duration = refined[-1]["end"] if refined else 0
+
     meta = {
         "video_path": os.path.abspath(video_path),
         "base_name": base,
@@ -144,11 +165,14 @@ def run_pipeline(video_path, project_dir):
         "silence_count": silence_count,
         "avg_chars": round(avg_chars, 1),
         "avg_duration": round(avg_dur, 1),
+        "video_duration": round(video_duration, 1),
+        "created_at": datetime.now().strftime("%Y-%m-%d %H:%M"),
     }
     meta_path = os.path.join(project_dir, f"{base}_meta.json")
     with open(meta_path, "w", encoding="utf-8") as f:
         json.dump(meta, f, ensure_ascii=False, indent=2)
 
+    report("FCPXML生成中")
     from fcpxml import generate_pipeline_fcpxml
     fcpxml_path = os.path.join(project_dir, f"{base}_pipeline.fcpxml")
     generate_pipeline_fcpxml(refined, video_path, fcpxml_path)

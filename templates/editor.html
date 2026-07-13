@@ -140,8 +140,8 @@ video { width: 100%; border-radius: 6px; background: #000; }
 {% if not project %}
 <div class="no-project">
   <h2>プロジェクトがありません</h2>
-  <p>まず動画を文字起こししてください:</p>
-  <pre style="background:#222;padding:16px;border-radius:8px;margin:16px auto;max-width:500px;text-align:left;color:#0a84ff;">python transcribe.py &lt;動画ファイル&gt;</pre>
+  <p>まず動画を追加して文字起こししてください。</p>
+  <p style="margin-top:16px;"><a href="/" style="color:#0a84ff;">← ライブラリに戻る</a></p>
 </div>
 {% else %}
 <div class="container">
@@ -227,6 +227,7 @@ video { width: 100%; border-radius: 6px; background: #000; }
 
   <div class="editor-panel">
     <div class="toolbar">
+      <button class="btn-action" onclick="location.href='/'">← ライブラリ</button>
       <button class="btn-save" onclick="save()">💾 保存</button>
       <button class="btn-action" onclick="mergeSelected()">▶ マージ</button>
       <div class="search-box">
@@ -342,12 +343,27 @@ function filterSegments() {
   renderSegments();
 }
 
+const IS_NATIVE = !!(window.pywebview && window.pywebview.api);
+
 async function save() {
+  let outputPath = null;
+
+  // In the native app, let the user choose the save destination.
+  if (IS_NATIVE && window.pywebview.api.pick_save_path) {
+    const defaultName = `${projectName}_テロップ付き.fcpxml`;
+    try {
+      outputPath = await window.pywebview.api.pick_save_path(defaultName);
+    } catch (e) { /* fall through to default */ }
+    if (outputPath === null || outputPath === '') {
+      return;  // user cancelled the dialog
+    }
+  }
+
   showStatus('保存中...');
   const res = await fetch('/api/save', {
     method: 'POST',
     headers: {'Content-Type': 'application/json'},
-    body: JSON.stringify({project: projectName, segments}),
+    body: JSON.stringify({project: projectName, segments, output_path: outputPath}),
   });
   const data = await res.json();
   if (data.ok) {

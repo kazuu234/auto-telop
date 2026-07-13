@@ -297,7 +297,7 @@
 
   <header class="header">
     <h1><span>Auto Telop</span><br>セットアップガイド</h1>
-    <p class="subtitle">動画を渡すだけで自動テロップ。Whisperで文字起こし → ブラウザで校閲 → Final Cut Pro用のFCPXMLを出力します。</p>
+    <p class="subtitle">動画を渡すだけで自動テロップ。Mac用のGUIアプリで、Whisper文字起こし → 校閲 → Final Cut Pro用のFCPXMLを出力します。ターミナルもブラウザも不要です。</p>
   </header>
 
   <nav class="toc">
@@ -305,11 +305,12 @@
     <ol>
       <li><a href="#overview">全体の流れ</a></li>
       <li><a href="#requirements">必要なもの</a></li>
-      <li><a href="#setup">環境セットアップ</a></li>
-      <li><a href="#transcribe">動画を文字起こしする</a></li>
-      <li><a href="#editor">Webエディタで校閲する</a></li>
-      <li><a href="#export">FCPにインポートする</a></li>
+      <li><a href="#install">アプリを準備する</a></li>
+      <li><a href="#extract">動画を追加してテロップ抽出</a></li>
+      <li><a href="#editor">校閲する</a></li>
+      <li><a href="#export">保存してFCPにインポート</a></li>
       <li><a href="#config">設定をカスタマイズする</a></li>
+      <li><a href="#update">アプリを更新する</a></li>
       <li><a href="#trouble">よくあるトラブル</a></li>
     </ol>
   </nav>
@@ -318,17 +319,24 @@
   <section class="section" id="overview">
     <span class="section-num">STEP 1</span>
     <h2>全体の流れ</h2>
-    <p>Auto Telopのワークフローは4ステップです。</p>
+    <p>Auto Telopは、アプリを起動して動画を放り込むだけ。</p>
     <div class="workflow">
-      <div class="wf-step"><div class="wf-icon">🎬</div><div class="wf-label">動画ファイル</div></div>
+      <div class="wf-step"><div class="wf-icon">🚀</div><div class="wf-label">アプリ<br>起動</div></div>
       <div class="wf-arrow">→</div>
-      <div class="wf-step"><div class="wf-icon">🤖</div><div class="wf-label">Whisper<br>文字起こし</div></div>
+      <div class="wf-step"><div class="wf-icon">🎬</div><div class="wf-label">動画を<br>ドロップ</div></div>
       <div class="wf-arrow">→</div>
-      <div class="wf-step"><div class="wf-icon">✏️</div><div class="wf-label">ブラウザで<br>校閲・修正</div></div>
+      <div class="wf-step"><div class="wf-icon">🤖</div><div class="wf-label">自動で<br>テロップ抽出</div></div>
+      <div class="wf-arrow">→</div>
+      <div class="wf-step"><div class="wf-icon">✏️</div><div class="wf-label">一覧から<br>校閲</div></div>
       <div class="wf-arrow">→</div>
       <div class="wf-step"><div class="wf-icon">🎞️</div><div class="wf-label">FCPXML<br>出力</div></div>
     </div>
-    <p>保存ボタンを押すと、テロップ付きのFCPXMLファイルがデスクトップに自動で出力されます。あとはFinal Cut Proにインポートするだけ。</p>
+    <ul class="checklist">
+      <li>複数の動画をまとめてドロップすると、順番に抽出されて<strong>ライブラリ（一覧）</strong>に並びます。</li>
+      <li>アプリを閉じて再度開いても、以前のエントリーはそのまま残ります。</li>
+      <li>保存時に<strong>出力先フォルダ・ファイル名を自分で選べます</strong>。</li>
+      <li>アプリ内から<strong>新しいバージョンの確認・ダウンロード</strong>ができます。</li>
+    </ul>
   </section>
 
   <!-- 2. Requirements -->
@@ -337,20 +345,22 @@
     <h2>必要なもの</h2>
     <ul class="checklist">
       <li><strong>Mac</strong>（macOS 12以降を推奨）</li>
-      <li><strong>Git</strong>（プロジェクトのダウンロードに使います）</li>
-      <li><strong>Python 3.9以上</strong>（後述のセットアップで入れます）</li>
-      <li><strong>FFmpeg</strong>（動画の解析に使います）</li>
+      <li><strong>FFmpeg</strong>（動画の解析に使います。<code>brew install ffmpeg</code>）</li>
       <li><strong>Final Cut Pro</strong>（FCPXMLのインポート先）</li>
       <li>ディスク空き容量 <strong>3GB以上</strong>（Whisperモデル用）</li>
     </ul>
+    <div class="callout">
+      <strong>Whisperのモデル</strong>はアプリの初回起動時に自動でダウンロードされます（約1.5GB、<code>~/.cache/whisper</code>）。<br>
+      アプリを<strong>自分でビルドする</strong>場合は、追加で <strong>Git</strong> と <strong>Python 3.9以上</strong> が必要です（次のステップ）。
+    </div>
   </section>
 
-  <!-- 3. Setup -->
-  <section class="section" id="setup">
+  <!-- 3. Install / Build -->
+  <section class="section" id="install">
     <span class="section-num">STEP 3</span>
-    <h2>環境セットアップ</h2>
+    <h2>アプリを準備する</h2>
 
-    <p>ターミナル.app を開いて、以下を<strong>上から順に</strong>コピー＆ペーストして実行してください。</p>
+    <p>配布された <code>AutoTelop.app</code> がある場合は、アプリケーションフォルダなどに置くだけでOK。ここでは<strong>自分でビルドする手順</strong>を説明します。</p>
 
     <h3 style="font-size:15px; margin:20px 0 8px; font-weight:700;">Homebrewをインストール（まだの場合）</h3>
     <div class="terminal">
@@ -368,65 +378,53 @@
       <pre><span class="prompt">$</span> brew install git python ffmpeg</pre>
     </div>
 
-    <h3 style="font-size:15px; margin:20px 0 8px; font-weight:700;">パスを通す</h3>
-    <p>Homebrewで入れたPythonにパスが通っていない場合があります。以下を実行してください。</p>
-    <div class="terminal">
-      <div class="terminal-bar"><div class="terminal-dot r"></div><div class="terminal-dot y"></div><div class="terminal-dot g"></div></div>
-      <pre><span class="comment"># zsh（macOSのデフォルト）の場合</span>
-<span class="prompt">$</span> echo 'export PATH="/opt/homebrew/bin:$PATH"' >> ~/.zshrc
-<span class="prompt">$</span> source ~/.zshrc
-
-<span class="comment"># 確認（バージョンが表示されればOK）</span>
-<span class="prompt">$</span> python3 --version</pre>
-    </div>
-
-    <h3 style="font-size:15px; margin:20px 0 8px; font-weight:700;">Auto Telop をダウンロード</h3>
+    <h3 style="font-size:15px; margin:20px 0 8px; font-weight:700;">ダウンロードしてアプリをビルド</h3>
     <div class="terminal">
       <div class="terminal-bar"><div class="terminal-dot r"></div><div class="terminal-dot y"></div><div class="terminal-dot g"></div></div>
       <pre><span class="prompt">$</span> cd ~
 <span class="prompt">$</span> git clone https://github.com/kazuu234/auto-telop.git
-<span class="prompt">$</span> cd auto-telop</pre>
+<span class="prompt">$</span> cd auto-telop
+<span class="prompt">$</span> ./build_macos.sh
+<span class="output">
+...（依存インストール & ビルド。数分かかります）...
+Done. App is at: dist/AutoTelop.app</span></pre>
     </div>
 
-    <h3 style="font-size:15px; margin:20px 0 8px; font-weight:700;">仮想環境を作成してライブラリをインストール</h3>
-    <div class="terminal">
-      <div class="terminal-bar"><div class="terminal-dot r"></div><div class="terminal-dot y"></div><div class="terminal-dot g"></div></div>
-      <pre><span class="prompt">$</span> python3 -m venv venv
-<span class="prompt">$</span> source venv/bin/activate
-<span class="prompt">$</span> pip install -r requirements.txt
-<span class="output">
-openai-whisper, flask, ffmpeg-python, pyyaml がインストールされます。
-初回は Whisper のモデルダウンロード（約1.5GB）が入るため数分かかります。</span></pre>
-    </div>
+    <p><code>dist/AutoTelop.app</code> が生成されます。ダブルクリックで起動できます。</p>
 
     <div class="callout">
-      <strong>2回目以降の利用時も</strong>、先に <code>cd ~/auto-telop && source venv/bin/activate</code> を実行してから使ってください。
+      <strong>初回起動の警告について：</strong> 署名していないアプリは初回にセキュリティ警告が出ます。アプリを<strong>右クリック →「開く」→ 確認</strong>で起動できます（2回目以降は普通にダブルクリックでOK）。
     </div>
 
     <div class="callout success">
-      <strong>セットアップ完了！</strong> ここまでできたら準備OKです。次に進みましょう。
+      <strong>ビルドせずに試したいときは</strong> <code>python desktop.py</code> でも同じGUIアプリが起動します（先に <code>python3 -m venv venv &amp;&amp; source venv/bin/activate &amp;&amp; pip install -r requirements.txt</code> が必要）。
     </div>
   </section>
 
-  <!-- 4. Transcribe -->
-  <section class="section" id="transcribe">
+  <!-- 4. Extract -->
+  <section class="section" id="extract">
     <span class="section-num">STEP 4</span>
-    <h2>動画を文字起こしする</h2>
+    <h2>動画を追加してテロップ抽出</h2>
 
-    <p>テロップをつけたい動画ファイルのパスを指定して実行します。</p>
+    <p><code>AutoTelop.app</code> を起動すると、ライブラリ画面が開きます。</p>
 
-    <div class="terminal">
-      <div class="terminal-bar"><div class="terminal-dot r"></div><div class="terminal-dot y"></div><div class="terminal-dot g"></div></div>
-      <pre><span class="prompt">$</span> cd ~/auto-telop
-<span class="prompt">$</span> python transcribe.py ~/Desktop/買ってよかった.mp4
-<span class="output">
-Transcribing with Whisper (medium)...
-Raw segments: 134
-Refined segments: 365 (silence gaps: 53)
-Average: 19 chars / 2.9s per segment
-
-Project ready: projects/買ってよかった
-Open http://localhost:5050 to edit</span></pre>
+    <div class="editor-desc">
+      <div class="editor-card">
+        <h4>① 動画を追加</h4>
+        <p>ウィンドウに動画を<strong>ドラッグ&amp;ドロップ</strong>（複数まとめて可）。または「＋ 動画を選択」をクリック。</p>
+      </div>
+      <div class="editor-card">
+        <h4>② 自動で抽出</h4>
+        <p>Whisperによる文字起こしが自動で始まります。複数動画は<strong>1本ずつ順番に</strong>処理され、進捗が表示されます。</p>
+      </div>
+      <div class="editor-card">
+        <h4>③ エントリーが追加</h4>
+        <p>抽出が終わると、動画と文字起こし結果をセットにした<strong>エントリー</strong>が一覧に並びます。</p>
+      </div>
+      <div class="editor-card">
+        <h4>④ いつでも続けられる</h4>
+        <p>抽出中でも別の動画を追加できます。アプリを閉じても、次に開いたときに一覧はそのまま残ります。</p>
+      </div>
     </div>
 
     <div class="callout">
@@ -437,19 +435,9 @@ Open http://localhost:5050 to edit</span></pre>
   <!-- 5. Editor -->
   <section class="section" id="editor">
     <span class="section-num">STEP 5</span>
-    <h2>Webエディタで校閲する</h2>
+    <h2>校閲する</h2>
 
-    <p>文字起こしが終わったら、Webエディタを起動します。</p>
-
-    <div class="terminal">
-      <div class="terminal-bar"><div class="terminal-dot r"></div><div class="terminal-dot y"></div><div class="terminal-dot g"></div></div>
-      <pre><span class="prompt">$</span> python app.py
-<span class="output">
- * Running on http://localhost:5050
- * Debug mode: on</span></pre>
-    </div>
-
-    <p>ブラウザで <code>http://localhost:5050</code> を開くとエディタが表示されます。</p>
+    <p>ライブラリで<strong>エントリーをクリック</strong>すると、校閲画面が開きます。</p>
 
     <div class="editor-desc">
       <div class="editor-card">
@@ -478,28 +466,27 @@ Open http://localhost:5050 to edit</span></pre>
       <li>CPS（文字/秒）が高すぎる行は文を短くする</li>
     </ul>
 
-    <p>校閲が終わったら <strong>「💾 保存」ボタン</strong> を押してください。</p>
+    <p>左上の <strong>「← ライブラリ」</strong> でいつでも一覧に戻れます。校閲が終わったら <strong>「💾 保存」ボタン</strong> を押してください。</p>
   </section>
 
   <!-- 6. Export -->
   <section class="section" id="export">
     <span class="section-num">STEP 6</span>
-    <h2>FCPにインポートする</h2>
+    <h2>保存してFCPにインポート</h2>
 
-    <p>保存ボタンを押すと、<strong>デスクトップ</strong>に以下のファイルが自動生成されます。</p>
+    <p><strong>「💾 保存」</strong>を押すと、<strong>保存先を選ぶダイアログ</strong>が表示されます。フォルダとファイル名を指定して保存してください。次回は前回選んだフォルダが初期値になります。</p>
 
     <div class="terminal">
       <div class="terminal-bar"><div class="terminal-dot r"></div><div class="terminal-dot y"></div><div class="terminal-dot g"></div></div>
-      <pre><span class="output">~/Desktop/買ってよかった_テロップ付き_0713_1430.fcpxml</span>
-
-<span class="comment"># フォント: A P-OTF A1Gothic StdN / 35pt が適用済み</span></pre>
+      <pre><span class="comment"># 例：選んだ保存先に出力される</span>
+<span class="output">~/Movies/買ってよかった_テロップ付き.fcpxml</span></pre>
     </div>
 
-    <p>このファイルをFinal Cut Proで開く手順：</p>
+    <p>出力したFCPXMLファイルをFinal Cut Proで開く手順：</p>
     <ol style="font-size:15px; padding-left:20px; margin:12px 0;">
       <li style="margin-bottom:6px;">Final Cut Pro を開く</li>
       <li style="margin-bottom:6px;">メニュー → <strong>ファイル → 読み込む → XML...</strong></li>
-      <li style="margin-bottom:6px;">デスクトップのFCPXMLファイルを選択</li>
+      <li style="margin-bottom:6px;">保存したFCPXMLファイルを選択</li>
       <li>タイムラインにテロップ付き動画が読み込まれる</li>
     </ol>
 
@@ -513,7 +500,7 @@ Open http://localhost:5050 to edit</span></pre>
     <span class="section-num">STEP 7</span>
     <h2>設定をカスタマイズする</h2>
 
-    <p><code>config.yaml</code> を編集すると、テロップのスタイルやWhisperの動作を変更できます。</p>
+    <p>テロップのフォント・サイズ・位置などは、校閲画面の<strong>「テロップスタイル プレビュー」</strong>から変更・保存できます。より細かい設定は <code>config.yaml</code> を直接編集します（初回起動時に自動生成されます）。</p>
 
     <div class="terminal">
       <div class="terminal-bar"><div class="terminal-dot r"></div><div class="terminal-dot y"></div><div class="terminal-dot g"></div></div>
@@ -536,29 +523,47 @@ segment:
     </div>
   </section>
 
-  <!-- 8. Troubleshooting -->
-  <section class="section" id="trouble">
+  <!-- 8. Update -->
+  <section class="section" id="update">
     <span class="section-num">STEP 8</span>
+    <h2>アプリを更新する</h2>
+
+    <p>ライブラリ画面の<strong>右上「更新を確認」ボタン</strong>を押すと、GitHub Releasesの最新版と現在のバージョンを比べます。</p>
+
+    <ul class="checklist">
+      <li>新しいバージョンがあると、画面上部に案内が表示されます。</li>
+      <li><strong>「ダウンロード」</strong>を押すとダウンロードフォルダに新しいアプリが保存されます。</li>
+      <li>ダウンロードした新しいアプリと、いまのアプリを<strong>差し替えて</strong>ください。</li>
+    </ul>
+
+    <div class="callout">
+      現在のバージョンは、ライブラリ画面の左上（アプリ名の横）に <code>v1.0.0</code> のように表示されます。
+    </div>
+  </section>
+
+  <!-- 9. Troubleshooting -->
+  <section class="section" id="trouble">
+    <span class="section-num">STEP 9</span>
     <h2>よくあるトラブル</h2>
 
-    <h3 style="font-size:15px; margin:16px 0 8px; font-weight:700;"><code>command not found: python</code> と出る</h3>
-    <p><code>python3</code> に読み替えて実行してください。<code>pip</code> も <code>pip3</code> に変えてください。</p>
+    <h3 style="font-size:15px; margin:16px 0 8px; font-weight:700;">アプリが「開けません」と警告される</h3>
+    <p>署名していないアプリのためです。アプリを<strong>右クリック →「開く」→ 確認</strong>で起動できます（初回のみ）。</p>
 
-    <h3 style="font-size:15px; margin:16px 0 8px; font-weight:700;"><code>ffprobe: command not found</code> と出る</h3>
+    <h3 style="font-size:15px; margin:16px 0 8px; font-weight:700;"><code>ffprobe: command not found</code> と出る／抽出がすぐ失敗する</h3>
     <p>FFmpegが入っていません。<code>brew install ffmpeg</code> を実行してください。</p>
 
-    <h3 style="font-size:15px; margin:16px 0 8px; font-weight:700;">Whisperの処理が非常に遅い</h3>
+    <h3 style="font-size:15px; margin:16px 0 8px; font-weight:700;">テロップ抽出が非常に遅い</h3>
     <p><code>config.yaml</code> の <code>whisper.model</code> を <code>"small"</code> や <code>"base"</code> に変えると速くなります（精度は少し落ちます）。</p>
 
-    <h3 style="font-size:15px; margin:16px 0 8px; font-weight:700;">動画がエディタで再生されない</h3>
-    <p>mp4形式以外の動画（.mov, .avi等）の場合、ブラウザが対応していない可能性があります。FFmpegでmp4に変換してから使ってください。</p>
+    <h3 style="font-size:15px; margin:16px 0 8px; font-weight:700;">校閲画面で動画が再生されない</h3>
+    <p>mp4形式以外の動画（.mov, .avi等）の場合、再生できないことがあります。FFmpegでmp4に変換してから使ってください。</p>
     <div class="terminal">
       <div class="terminal-bar"><div class="terminal-dot r"></div><div class="terminal-dot y"></div><div class="terminal-dot g"></div></div>
       <pre><span class="prompt">$</span> ffmpeg -i input.mov -c:v libx264 -c:a aac output.mp4</pre>
     </div>
 
-    <h3 style="font-size:15px; margin:16px 0 8px; font-weight:700;">ポート5050が使えない</h3>
-    <p><code>app.py</code> の最後の行にあるポート番号を変更してください（例: 5051）。</p>
+    <h3 style="font-size:15px; margin:16px 0 8px; font-weight:700;">（ビルド時）<code>command not found: python</code> と出る</h3>
+    <p><code>python3</code> に読み替えて実行してください。<code>pip</code> も <code>pip3</code> に変えてください。</p>
   </section>
 
   <footer class="footer">

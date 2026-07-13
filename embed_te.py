@@ -8,7 +8,22 @@ from datetime import datetime
 from fcpxml import generate_styled_fcpxml
 
 
-def embed_telop(project_dir, base_name):
+def default_output_path(base_name, output_dir=None):
+    """Build the default export path (Desktop by default, timestamped)."""
+    timestamp = datetime.now().strftime("%m%d_%H%M")
+    if output_dir is None:
+        output_dir = os.path.expanduser("~/Desktop")
+    return os.path.join(output_dir, f"{base_name}_テロップ付き_{timestamp}.fcpxml")
+
+
+def embed_telop(project_dir, base_name, output_path=None):
+    """Generate the styled telop FCPXML.
+
+    output_path: full destination path. When None, defaults to
+    ~/Desktop/<base>_テロップ付き_<MMDD_HHMM>.fcpxml (backward compatible).
+    An existing directory path is also accepted; a timestamped filename is
+    generated inside it.
+    """
     from transcribe import load_config
     config = load_config()
     style = config["style"]
@@ -29,9 +44,13 @@ def embed_telop(project_dir, base_name):
     with open(hook_path, encoding="utf-8") as f:
         hook = json.load(f)
 
-    timestamp = datetime.now().strftime("%m%d_%H%M")
-    desktop = os.path.expanduser("~/Desktop")
-    output_path = os.path.join(desktop, f"{base_name}_テロップ付き_{timestamp}.fcpxml")
+    if not output_path:
+        output_path = default_output_path(base_name)
+    else:
+        output_path = os.path.expanduser(output_path)
+        if os.path.isdir(output_path):
+            output_path = default_output_path(base_name, output_path)
+        os.makedirs(os.path.dirname(os.path.abspath(output_path)), exist_ok=True)
 
     generate_styled_fcpxml(segments, hook["video_path"], output_path, style)
     print(f"Generated: {output_path}")
