@@ -27,11 +27,16 @@ rm -rf build dist
 echo "==> Building AutoTelop.app"
 pyinstaller AutoTelop.spec --noconfirm
 
+echo "==> Bundling first-run setup script"
+cp 初回セットアップ.command dist/
+chmod +x dist/初回セットアップ.command
+
+echo "==> Creating distribution zip (app + setup script)"
+( cd dist && rm -f AutoTelop-mac.zip && zip -r -y -q AutoTelop-mac.zip AutoTelop.app 初回セットアップ.command )
+
 echo ""
 echo "Done. App is at: dist/AutoTelop.app"
+echo "Distribution zip: dist/AutoTelop-mac.zip (includes 初回セットアップ.command)"
 echo ""
-echo "To distribute, zip it:"
-echo "  cd dist && zip -r AutoTelop-mac.zip AutoTelop.app"
-echo ""
-echo "Note: unsigned apps trigger a Gatekeeper warning on first launch."
-echo "Right-click the app > Open, then confirm, to bypass it."
+echo "Note: unsigned apps trigger a Gatekeeper 'damaged' warning on first launch."
+echo "The bundled 初回セットアップ.command runs 'xattr -cr' to clear it."
