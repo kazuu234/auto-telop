@@ -55,9 +55,10 @@ def generate_pipeline_fcpxml(segments, video_path, output_path):
                   frameDuration=_seconds_to_fcpxml_time(1 / fps, fps),
                   width=str(width), height=str(height))
 
-    ET.SubElement(resources, "asset", id="r2", name=os.path.basename(video_path),
-                  src=video_url, start="0/1s", duration=total_dur,
-                  hasVideo="1", hasAudio="1", format="r1")
+    asset = ET.SubElement(resources, "asset", id="r2", name=os.path.basename(video_path),
+                          start="0/1s", duration=total_dur,
+                          hasVideo="1", hasAudio="1", format="r1")
+    ET.SubElement(asset, "media-rep", kind="original-media", src=video_url)
 
     library = ET.SubElement(root, "library")
     event = ET.SubElement(library, "event", name="Auto Telop")
@@ -66,13 +67,13 @@ def generate_pipeline_fcpxml(segments, video_path, output_path):
                              duration=total_dur, tcStart="0/1s")
     spine = ET.SubElement(sequence, "spine")
 
-    ET.SubElement(spine, "asset-clip", ref="r2", name=os.path.basename(video_path),
-                  duration=total_dur, start="0/1s", offset="0/1s")
+    clip = ET.SubElement(spine, "asset-clip", ref="r2", name=os.path.basename(video_path),
+                         duration=total_dur, start="0/1s", offset="0/1s")
 
     for i, seg in enumerate(segments):
         offset = _seconds_to_fcpxml_time(seg["start"], fps)
         seg_dur = _seconds_to_fcpxml_time(seg["end"] - seg["start"], fps)
-        title = ET.SubElement(spine, "title", ref="r1",
+        title = ET.SubElement(clip, "title", ref="r1", lane="1",
                               name=f"Telop {i + 1}", offset=offset, duration=seg_dur)
         text = ET.SubElement(title, "text")
         text_style = ET.SubElement(text, "text-style", ref=f"ts{i + 1}")
@@ -105,9 +106,10 @@ def generate_styled_fcpxml(segments, video_path, output_path, style_config):
                   frameDuration=_seconds_to_fcpxml_time(1 / fps, fps),
                   width=str(width), height=str(height))
 
-    ET.SubElement(resources, "asset", id="r2", name=os.path.basename(video_path),
-                  src=video_url, start="0/1s", duration=total_dur,
-                  hasVideo="1", hasAudio="1", format="r1")
+    asset = ET.SubElement(resources, "asset", id="r2", name=os.path.basename(video_path),
+                          start="0/1s", duration=total_dur,
+                          hasVideo="1", hasAudio="1", format="r1")
+    ET.SubElement(asset, "media-rep", kind="original-media", src=video_url)
 
     library = ET.SubElement(root, "library")
     event = ET.SubElement(library, "event", name="Auto Telop")
@@ -116,8 +118,8 @@ def generate_styled_fcpxml(segments, video_path, output_path, style_config):
                              duration=total_dur, tcStart="0/1s")
     spine = ET.SubElement(sequence, "spine")
 
-    ET.SubElement(spine, "asset-clip", ref="r2", name=os.path.basename(video_path),
-                  duration=total_dur, start="0/1s", offset="0/1s")
+    clip = ET.SubElement(spine, "asset-clip", ref="r2", name=os.path.basename(video_path),
+                         duration=total_dur, start="0/1s", offset="0/1s")
 
     font = style_config.get("font_name", "A P-OTF A1Gothic StdN")
     font_size = style_config.get("font_size", 35)
@@ -125,7 +127,7 @@ def generate_styled_fcpxml(segments, video_path, output_path, style_config):
     for i, seg in enumerate(segments):
         offset = _seconds_to_fcpxml_time(seg["start"], fps)
         seg_dur = _seconds_to_fcpxml_time(seg["end"] - seg["start"], fps)
-        title = ET.SubElement(spine, "title", ref="r1",
+        title = ET.SubElement(clip, "title", ref="r1", lane="1",
                               name=f"Telop {i + 1}", offset=offset, duration=seg_dur)
         text = ET.SubElement(title, "text")
         text_style = ET.SubElement(text, "text-style", ref=f"ts{i + 1}")
