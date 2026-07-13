@@ -44,7 +44,17 @@ def _seconds_to_fcpxml_time(seconds, fps=30):
     return f"{frames * 100}/{fps_rounded * 100}s"
 
 
-def generate_pipeline_fcpxml(segments, video_path, output_path):
+def _add_position_param(title_el, style_config):
+    """Add position parameter to a title element."""
+    pos_x = style_config.get("position_x", 0)
+    pos_y = style_config.get("position_y", -85)
+    if pos_x != 0 or pos_y != 0:
+        ET.SubElement(title_el, "param",
+                      name="Position", key="9999/999166631/999166633/1/100/101",
+                      value=f"{pos_x} {pos_y}")
+
+
+def generate_pipeline_fcpxml(segments, video_path, output_path, style_config=None):
     """Generate FCPXML with subtitle timing markers."""
     duration, fps, width, height = _get_video_info(video_path)
     abs_video = os.path.abspath(video_path)
@@ -84,6 +94,8 @@ def generate_pipeline_fcpxml(segments, video_path, output_path):
         seg_dur = _seconds_to_fcpxml_time(seg["end"] - seg["start"], fps)
         title = ET.SubElement(clip, "title", ref="r3", lane="1",
                               name=f"Telop {i + 1}", offset=offset, duration=seg_dur)
+        if style_config:
+            _add_position_param(title, style_config)
         text = ET.SubElement(title, "text")
         text_style = ET.SubElement(text, "text-style", ref=f"ts{i + 1}")
         text_style.text = seg["text"]
@@ -148,14 +160,17 @@ def generate_styled_fcpxml(segments, video_path, output_path, style_config):
         seg_dur = _seconds_to_fcpxml_time(seg["end"] - seg["start"], fps)
         title = ET.SubElement(clip, "title", ref="r3", lane="1",
                               name=f"Telop {i + 1}", offset=offset, duration=seg_dur)
+        _add_position_param(title, style_config)
         text = ET.SubElement(title, "text")
         text_style = ET.SubElement(text, "text-style", ref=f"ts{i + 1}")
         text_style.text = seg["text"]
         text_style_def = ET.SubElement(title, "text-style-def", id=f"ts{i + 1}")
+        bold_val = "1" if style_config.get("bold", True) else "0"
         ET.SubElement(text_style_def, "text-style",
                       font=font, fontSize=str(font_size),
-                      fontColor="1 1 1 1", bold="1",
-                      strokeColor="0 0 0 1", strokeWidth="3",
+                      fontColor="1 1 1 1", bold=bold_val,
+                      strokeColor="0 0 0 1",
+                      strokeWidth=str(style_config.get("outline_width", 3)),
                       alignment="center")
 
     xml_str = minidom.parseString(ET.tostring(root, encoding="unicode")).toprettyxml(indent="  ")

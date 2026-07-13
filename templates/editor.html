@@ -92,6 +92,48 @@ video { width: 100%; border-radius: 6px; background: #000; }
 
 .no-project { padding: 40px; text-align: center; color: #666; }
 .no-project h2 { margin-bottom: 12px; color: #aaa; }
+
+/* --- Style Preview Panel --- */
+.style-panel {
+  background: #222; border-top: 1px solid #333; padding: 12px;
+}
+.style-panel h3 {
+  font-size: 12px; color: #888; margin-bottom: 10px;
+  letter-spacing: 0.05em; text-transform: uppercase;
+}
+.style-preview-box {
+  position: relative; width: 100%; aspect-ratio: 16/9;
+  background: #000; border-radius: 6px; overflow: hidden; margin-bottom: 12px;
+}
+.style-preview-text {
+  position: absolute; width: 100%; text-align: center;
+  color: #fff; padding: 0 16px;
+  text-shadow: -2px -2px 0 #000, 2px -2px 0 #000, -2px 2px 0 #000, 2px 2px 0 #000;
+  transition: all 0.2s;
+}
+.style-controls {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 8px;
+}
+.style-field { display: flex; flex-direction: column; gap: 3px; }
+.style-field label {
+  font-size: 11px; color: #888;
+}
+.style-field input, .style-field select {
+  padding: 4px 6px; border: 1px solid #444; border-radius: 4px;
+  background: #2a2a2a; color: #e0e0e0; font-size: 12px;
+}
+.style-field input[type="range"] {
+  padding: 0; background: transparent; border: none;
+}
+.style-save-row {
+  margin-top: 10px; display: flex; gap: 8px; align-items: center;
+}
+.style-save-row button {
+  padding: 5px 14px; border: none; border-radius: 4px;
+  cursor: pointer; font-size: 12px; font-weight: 600;
+}
+.btn-style-save { background: #30d158; color: #fff; }
+.btn-style-save:hover { background: #28b84c; }
 </style>
 </head>
 <body>
@@ -114,7 +156,54 @@ video { width: 100%; border-radius: 6px; background: #000; }
         <tr><td>平均</td><td>{{ meta.avg_chars }}字 / {{ meta.avg_duration }}秒</td></tr>
         <tr><td>無音検出</td><td>{{ meta.silence_count }}箇所の息継ぎ無音検出済み</td></tr>
       </table>
-      <p style="margin-top:12px;">校閲済みテキスト.txt は今は raw のままなので、誤変換修正から始めるとよいです。</p>
+    </div>
+
+    <div class="style-panel">
+      <h3>テロップスタイル プレビュー</h3>
+      <div class="style-preview-box" id="stylePreviewBox">
+        <div class="style-preview-text" id="stylePreviewText">サンプルテロップ</div>
+      </div>
+      <div class="style-controls">
+        <div class="style-field">
+          <label>フォント</label>
+          <select id="styleFont" onchange="updatePreview()">
+            <option value="A P-OTF A1Gothic StdN">A1ゴシック</option>
+            <option value="Hiragino Sans">ヒラギノ角ゴ</option>
+            <option value="Hiragino Mincho ProN">ヒラギノ明朝</option>
+            <option value="YuGothic">游ゴシック</option>
+            <option value="YuMincho">游明朝</option>
+            <option value="Helvetica">Helvetica</option>
+            <option value="Arial">Arial</option>
+          </select>
+        </div>
+        <div class="style-field">
+          <label>サイズ: <span id="fontSizeVal">{{ style.font_size or 35 }}</span>pt</label>
+          <input type="range" id="styleFontSize" min="16" max="80" value="{{ style.font_size or 35 }}" oninput="updatePreview()">
+        </div>
+        <div class="style-field">
+          <label>縦位置: <span id="posYVal">{{ style.position_y if style.position_y is defined else -85 }}</span>%</label>
+          <input type="range" id="stylePosY" min="-100" max="100" value="{{ style.position_y if style.position_y is defined else -85 }}" oninput="updatePreview()">
+        </div>
+        <div class="style-field">
+          <label>横位置: <span id="posXVal">{{ style.position_x or 0 }}</span>%</label>
+          <input type="range" id="stylePosX" min="-100" max="100" value="{{ style.position_x or 0 }}" oninput="updatePreview()">
+        </div>
+        <div class="style-field">
+          <label>縁取り: <span id="outlineVal">{{ style.outline_width or 3 }}</span>px</label>
+          <input type="range" id="styleOutline" min="0" max="8" value="{{ style.outline_width or 3 }}" oninput="updatePreview()">
+        </div>
+        <div class="style-field">
+          <label>太字</label>
+          <select id="styleBold" onchange="updatePreview()">
+            <option value="true" {{ 'selected' if style.bold != false }}>オン</option>
+            <option value="false" {{ 'selected' if style.bold == false }}>オフ</option>
+          </select>
+        </div>
+      </div>
+      <div class="style-save-row">
+        <button class="btn-style-save" onclick="saveStyle()">スタイル保存</button>
+        <span id="styleSaveStatus" style="font-size:12px;color:#888;"></span>
+      </div>
     </div>
   </div>
 
@@ -288,6 +377,80 @@ if (player) {
     });
   });
 }
+
+// --- Style Preview ---
+function updatePreview() {
+  const el = document.getElementById('stylePreviewText');
+  const box = document.getElementById('stylePreviewBox');
+  if (!el) return;
+
+  const font = document.getElementById('styleFont').value;
+  const size = parseInt(document.getElementById('styleFontSize').value);
+  const posY = parseInt(document.getElementById('stylePosY').value);
+  const posX = parseInt(document.getElementById('stylePosX').value);
+  const outline = parseInt(document.getElementById('styleOutline').value);
+  const bold = document.getElementById('styleBold').value === 'true';
+
+  document.getElementById('fontSizeVal').textContent = size;
+  document.getElementById('posYVal').textContent = posY;
+  document.getElementById('posXVal').textContent = posX;
+  document.getElementById('outlineVal').textContent = outline;
+
+  const previewSize = Math.max(12, Math.round(size * box.offsetWidth / 1920 * 2));
+  el.style.fontFamily = `"${font}", sans-serif`;
+  el.style.fontSize = previewSize + 'px';
+  el.style.fontWeight = bold ? '700' : '400';
+
+  const shadowSize = Math.max(1, Math.round(outline * 0.7));
+  el.style.textShadow = `
+    -${shadowSize}px -${shadowSize}px 0 #000,
+     ${shadowSize}px -${shadowSize}px 0 #000,
+    -${shadowSize}px  ${shadowSize}px 0 #000,
+     ${shadowSize}px  ${shadowSize}px 0 #000`;
+
+  const topPct = 50 - (posY / 2);
+  const leftPct = 50 + (posX / 2);
+  el.style.top = topPct + '%';
+  el.style.left = leftPct + '%';
+  el.style.transform = 'translate(-50%, -50%)';
+  el.style.width = 'auto';
+  el.style.maxWidth = '90%';
+}
+
+async function saveStyle() {
+  const style = {
+    font_name: document.getElementById('styleFont').value,
+    font_size: parseInt(document.getElementById('styleFontSize').value),
+    position_y: parseInt(document.getElementById('stylePosY').value),
+    position_x: parseInt(document.getElementById('stylePosX').value),
+    outline_width: parseInt(document.getElementById('styleOutline').value),
+    bold: document.getElementById('styleBold').value === 'true',
+    primary_color: '&H00FFFFFF',
+    outline_color: '&H00000000',
+  };
+  const res = await fetch('/api/style', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify(style),
+  });
+  const data = await res.json();
+  if (data.ok) {
+    document.getElementById('styleSaveStatus').textContent = '保存しました';
+    setTimeout(() => document.getElementById('styleSaveStatus').textContent = '', 2000);
+  }
+}
+
+// Set initial font dropdown value
+(function() {
+  const fontSelect = document.getElementById('styleFont');
+  if (fontSelect) {
+    const configFont = {{ (style.font_name or 'A P-OTF A1Gothic StdN') | tojson }};
+    for (const opt of fontSelect.options) {
+      if (opt.value === configFont) { opt.selected = true; break; }
+    }
+    updatePreview();
+  }
+})();
 
 renderSegments();
 </script>

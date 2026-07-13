@@ -5,8 +5,8 @@ style:
   outline_color: "&H00000000"
   outline_width: 3
   bold: true
-  alignment: 2
-  margin_v: 40
+  position_y: -85            # 縦位置 (% of height, -100=最下部 〜 0=中央 〜 100=最上部)
+  position_x: 0              # 横位置 (% of width, -100=左端 〜 0=中央 〜 100=右端)
 
 whisper:
   model: "medium"

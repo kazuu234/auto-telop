@@ -5,6 +5,7 @@ import os
 import subprocess
 import glob
 
+import yaml
 from flask import Flask, render_template, request, jsonify, send_file
 
 app = Flask(__name__)
@@ -46,8 +47,11 @@ def index():
             if i < len(lines) and lines[i]:
                 seg["text"] = lines[i]
 
+    config = yaml.safe_load(open(os.path.join(BASE_DIR, "config.yaml")))
+    style = config.get("style", {})
+
     return render_template("editor.html", project=project, segments=segments,
-                           meta=project, projects=projects)
+                           meta=project, projects=projects, style=style)
 
 
 @app.route("/video/<path:project_name>")
@@ -137,6 +141,23 @@ def split_segment():
 
     new_segments = segments[:idx] + [seg1, seg2] + segments[idx + 1:]
     return jsonify({"segments": new_segments})
+
+
+@app.route("/api/style", methods=["GET"])
+def get_style():
+    config = yaml.safe_load(open(os.path.join(BASE_DIR, "config.yaml")))
+    return jsonify(config.get("style", {}))
+
+
+@app.route("/api/style", methods=["POST"])
+def update_style():
+    new_style = request.json
+    config_path = os.path.join(BASE_DIR, "config.yaml")
+    config = yaml.safe_load(open(config_path))
+    config["style"] = new_style
+    with open(config_path, "w", encoding="utf-8") as f:
+        yaml.dump(config, f, allow_unicode=True, default_flow_style=False)
+    return jsonify({"ok": True})
 
 
 if __name__ == "__main__":
