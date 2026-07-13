@@ -267,6 +267,10 @@ function calcCPS(seg) {
   return dur > 0 ? (seg.text.length / dur).toFixed(1) : '0.0';
 }
 
+function escapeAttr(s) {
+  return s.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
+}
+
 function renderSegments() {
   const list = document.getElementById('segmentList');
   const filter = document.getElementById('searchInput').value.toLowerCase();
@@ -293,7 +297,7 @@ function renderSegments() {
       </div>
       <div class="seg-cps ${cpsClass}">${cps} cps</div>
       <div class="seg-text">
-        <input value="${seg.text.replace(/"/g, '&quot;')}"
+        <input value="${escapeAttr(seg.text)}"
                onchange="updateText(${i}, this.value)"
                onclick="event.stopPropagation()"
                onfocus="jumpTo(${seg.start})">

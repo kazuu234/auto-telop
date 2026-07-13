@@ -3,8 +3,8 @@
 import os
 import re
 import subprocess
+import urllib.parse
 import xml.etree.ElementTree as ET
-from xml.dom import minidom
 
 
 def _get_video_info(video_path):
@@ -36,11 +36,12 @@ def _seconds_to_fcpxml_time(seconds, fps=30):
     """Convert seconds to FCPXML rational time snapped to frame boundaries."""
     frames = round(seconds * fps)
     fps_rounded = round(fps)
-    if abs(fps - 29.97) < 0.1 or abs(fps - 30000 / 1001) < 0.01:
+    # 許容誤差は 0.01: 整数fps (30.0) をNTSC (29.97) と誤判定しないよう十分小さく
+    if abs(fps - 30000 / 1001) < 0.01:
         return f"{frames * 1001}/30000s"
-    if abs(fps - 59.94) < 0.1 or abs(fps - 60000 / 1001) < 0.01:
+    if abs(fps - 60000 / 1001) < 0.01:
         return f"{frames * 1001}/60000s"
-    if abs(fps - 23.976) < 0.1 or abs(fps - 24000 / 1001) < 0.01:
+    if abs(fps - 24000 / 1001) < 0.01:
         return f"{frames * 1001}/24000s"
     return f"{frames * 100}/{fps_rounded * 100}s"
 
@@ -50,9 +51,25 @@ def _split_text_runs(text):
     runs = []
     for match in re.finditer(r'[A-Za-z0-9\s\.\,\!\?\-\:\;\'\"\(\)\[\]\/\@\#\$\%\&\*\+\=]+|[^A-Za-z0-9\s\.\,\!\?\-\:\;\'\"\(\)\[\]\/\@\#\$\%\&\*\+\=]+', text):
         chunk = match.group()
-        is_ascii = bool(re.match(r'^[A-Za-z0-9]', chunk))
+        # 判定はチャンク内に英数字を含むかで行う（先頭が空白でも英語扱いにする）
+        is_ascii = bool(re.search(r'[A-Za-z0-9]', chunk))
         runs.append((is_ascii, chunk))
     return runs if runs else [(False, text)]
+
+
+def _write_fcpxml(root, output_path):
+    """Serialize WITHOUT any pretty-printing.
+
+    Pretty-printers (minidom.toprettyxml / ET.indent) inject whitespace
+    around text nodes, which shows up as literal spaces and newlines in
+    the telop text once imported into FCP. Compact output is safe.
+    """
+    body = ET.tostring(root, encoding="unicode")
+    with open(output_path, "w", encoding="utf-8") as f:
+        f.write('<?xml version="1.0" encoding="UTF-8"?>\n')
+        f.write('<!DOCTYPE fcpxml>\n')
+        f.write(body + "\n")
+    return output_path
 
 
 def _build_text_style_attrs(font, font_size, bold_val, outline):
@@ -126,7 +143,7 @@ def generate_pipeline_fcpxml(segments, video_path, output_path, style_config=Non
     """Generate FCPXML with subtitle timing markers."""
     duration, fps, width, height = _get_video_info(video_path)
     abs_video = os.path.abspath(video_path)
-    video_url = "file://" + abs_video.replace(" ", "%20")
+    video_url = "file://" + urllib.parse.quote(abs_video)
 
     total_dur = _seconds_to_fcpxml_time(duration, fps)
 
@@ -159,7 +176,8 @@ def generate_pipeline_fcpxml(segments, video_path, output_path, style_config=Non
 
     for i, seg in enumerate(segments):
         offset = _seconds_to_fcpxml_time(seg["start"], fps)
-        seg_dur = _seconds_to_fcpxml_time(seg["end"] - seg["start"], fps)
+        # 0フレーム duration は DTD 的に不正になるため最低1フレーム確保
+        seg_dur = _seconds_to_fcpxml_time(max(seg["end"] - seg["start"], 1 / fps), fps)
         title = ET.SubElement(clip, "title", ref="r3", lane="1",
                               name=f"Telop {i + 1}", offset=offset, duration=seg_dur)
         if style_config:
@@ -176,22 +194,14 @@ def generate_pipeline_fcpxml(segments, video_path, output_path, style_config=Non
                           strokeColor="0 0 0 1", strokeWidth="-2",
                           alignment="center")
 
-    xml_str = minidom.parseString(ET.tostring(root, encoding="unicode")).toprettyxml(indent="  ")
-    lines = [l for l in xml_str.split("\n") if l.strip()]
-    lines[0] = '<?xml version="1.0" encoding="UTF-8"?>'
-    lines.insert(1, '<!DOCTYPE fcpxml>')
-
-    with open(output_path, "w", encoding="utf-8") as f:
-        f.write("\n".join(lines) + "\n")
-
-    return output_path
+    return _write_fcpxml(root, output_path)
 
 
 def generate_styled_fcpxml(segments, video_path, output_path, style_config):
     """Generate FCPXML with embedded telop styling."""
     duration, fps, width, height = _get_video_info(video_path)
     abs_video = os.path.abspath(video_path)
-    video_url = "file://" + abs_video.replace(" ", "%20")
+    video_url = "file://" + urllib.parse.quote(abs_video)
 
     total_dur = _seconds_to_fcpxml_time(duration, fps)
 
@@ -224,18 +234,11 @@ def generate_styled_fcpxml(segments, video_path, output_path, style_config):
 
     for i, seg in enumerate(segments):
         offset = _seconds_to_fcpxml_time(seg["start"], fps)
-        seg_dur = _seconds_to_fcpxml_time(seg["end"] - seg["start"], fps)
+        # 0フレーム duration は DTD 的に不正になるため最低1フレーム確保
+        seg_dur = _seconds_to_fcpxml_time(max(seg["end"] - seg["start"], 1 / fps), fps)
         title = ET.SubElement(clip, "title", ref="r3", lane="1",
                               name=f"Telop {i + 1}", offset=offset, duration=seg_dur)
         _add_text_with_dual_font(title, seg["text"], i + 1, style_config)
         _add_position(title, style_config, width, height)
 
-    xml_str = minidom.parseString(ET.tostring(root, encoding="unicode")).toprettyxml(indent="  ")
-    lines = [l for l in xml_str.split("\n") if l.strip()]
-    lines[0] = '<?xml version="1.0" encoding="UTF-8"?>'
-    lines.insert(1, '<!DOCTYPE fcpxml>')
-
-    with open(output_path, "w", encoding="utf-8") as f:
-        f.write("\n".join(lines) + "\n")
-
-    return output_path
+    return _write_fcpxml(root, output_path)

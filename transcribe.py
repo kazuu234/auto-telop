@@ -3,7 +3,6 @@
 import csv
 import json
 import os
-import whisper
 import yaml
 
 
@@ -21,6 +20,7 @@ def load_config(path="config.yaml"):
 
 def transcribe(video_path, config):
     """Run Whisper on a video file and return raw segments."""
+    import whisper  # 遅延import: エディタ(app.py)起動時に読み込まないため
     wcfg = config["whisper"]
     model = whisper.load_model(wcfg["model"])
     result = model.transcribe(
@@ -76,17 +76,18 @@ def refine_segments(raw_segments, config):
             )
 
             if should_split and current_text:
-                if duration >= min_dur:
+                # min_dur 未満でも捨てずに次のチャンクへ持ち越す（最後の単語なら必ず出力）
+                if duration >= min_dur or next_start is None:
                     refined.append({
                         "start": round(current_start, 3),
                         "end": round(current_end, 3),
                         "text": current_text,
                     })
+                    current_words = []
+                    if next_start is not None:
+                        current_start = next_start
                 if gap >= silence_thresh:
                     silence_count += 1
-                current_words = []
-                if next_start is not None:
-                    current_start = next_start
 
     return refined, silence_count
 

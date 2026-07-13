@@ -2,7 +2,6 @@
 
 import json
 import os
-import subprocess
 import glob
 
 import yaml
@@ -157,7 +156,8 @@ def update_style():
     config_path = os.path.join(BASE_DIR, "config.yaml")
     from transcribe import load_config
     config = load_config()
-    config["style"] = new_style
+    # 丸ごと置換ではなくマージ（UIにないキーを消さない）
+    config.setdefault("style", {}).update(new_style)
     with open(config_path, "w", encoding="utf-8") as f:
         yaml.dump(config, f, allow_unicode=True, default_flow_style=False)
     return jsonify({"ok": True})

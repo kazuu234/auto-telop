@@ -3,7 +3,6 @@
 import json
 import os
 import sys
-import yaml
 
 from fcpxml import generate_pipeline_fcpxml
 

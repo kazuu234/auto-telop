@@ -5,8 +5,6 @@ import os
 import sys
 from datetime import datetime
 
-import yaml
-
 from fcpxml import generate_styled_fcpxml
 
 
