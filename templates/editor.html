@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Auto Telop Editor</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: #1a1a1a; color: #e0e0e0; }
+
+.container { display: flex; height: 100vh; }
+.video-panel { width: 45%; padding: 12px; display: flex; flex-direction: column; }
+.editor-panel { width: 55%; display: flex; flex-direction: column; border-left: 1px solid #333; }
+
+video { width: 100%; border-radius: 6px; background: #000; }
+
+.toolbar {
+  display: flex; align-items: center; gap: 8px;
+  padding: 8px 12px; background: #222; border-bottom: 1px solid #333;
+}
+.toolbar button {
+  padding: 6px 16px; border: none; border-radius: 4px;
+  cursor: pointer; font-size: 13px; font-weight: 600;
+}
+.btn-save { background: #0a84ff; color: #fff; }
+.btn-save:hover { background: #0070e0; }
+.btn-action { background: #333; color: #ccc; }
+.btn-action:hover { background: #444; }
+
+.search-box {
+  margin-left: auto; display: flex; align-items: center; gap: 6px;
+}
+.search-box input {
+  padding: 5px 10px; border: 1px solid #444; border-radius: 4px;
+  background: #2a2a2a; color: #e0e0e0; font-size: 13px; width: 160px;
+}
+.search-box span { font-size: 12px; color: #888; }
+
+.segment-list { flex: 1; overflow-y: auto; }
+.segment-row {
+  display: flex; align-items: stretch; border-bottom: 1px solid #2a2a2a;
+  cursor: pointer; transition: background 0.1s;
+}
+.segment-row:hover { background: #252525; }
+.segment-row.active { background: #1a3a5c; }
+.segment-row.selected { background: #2a4a3c; }
+
+.seg-num {
+  width: 36px; padding: 8px 4px; text-align: center;
+  font-size: 12px; color: #666; flex-shrink: 0;
+}
+.seg-time {
+  width: 100px; padding: 8px 6px; font-size: 12px;
+  color: #999; font-family: monospace; flex-shrink: 0;
+  display: flex; flex-direction: column; justify-content: center;
+}
+.seg-time .duration { font-size: 10px; color: #666; }
+.seg-cps {
+  width: 60px; padding: 8px 4px; font-size: 11px;
+  color: #777; display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.seg-cps.fast { color: #ff6b6b; }
+.seg-text {
+  flex: 1; padding: 6px 10px; display: flex; align-items: center;
+}
+.seg-text input {
+  width: 100%; padding: 4px 6px; border: 1px solid transparent;
+  background: transparent; color: #e0e0e0; font-size: 14px;
+  border-radius: 3px;
+}
+.seg-text input:focus { border-color: #0a84ff; background: #1e1e1e; outline: none; }
+
+.meta-bar {
+  padding: 8px 12px; background: #222; border-top: 1px solid #333;
+  font-size: 12px; color: #888; display: flex; gap: 16px;
+}
+
+.info-panel {
+  padding: 12px; font-size: 13px; color: #aaa; line-height: 1.8;
+}
+.info-panel h3 { color: #e0e0e0; margin-bottom: 8px; }
+.info-panel table { width: 100%; border-collapse: collapse; margin: 8px 0; }
+.info-panel td { padding: 4px 8px; border-bottom: 1px solid #333; }
+.info-panel td:first-child { color: #888; width: 50%; }
+
+.status-msg {
+  position: fixed; bottom: 20px; right: 20px; padding: 10px 20px;
+  background: #0a84ff; color: #fff; border-radius: 6px;
+  font-size: 13px; display: none; z-index: 100;
+}
+
+.no-project { padding: 40px; text-align: center; color: #666; }
+.no-project h2 { margin-bottom: 12px; color: #aaa; }
+</style>
+</head>
+<body>
+{% if not project %}
+<div class="no-project">
+  <h2>プロジェクトがありません</h2>
+  <p>まず動画を文字起こししてください:</p>
+  <pre style="background:#222;padding:16px;border-radius:8px;margin:16px auto;max-width:500px;text-align:left;color:#0a84ff;">python transcribe.py &lt;動画ファイル&gt;</pre>
+</div>
+{% else %}
+<div class="container">
+  <div class="video-panel">
+    <video id="player" controls preload="metadata">
+      <source src="/video/{{ project.base_name }}" type="video/mp4">
+    </video>
+    <div class="info-panel">
+      <h3>Whisper結果の概要</h3>
+      <table>
+        <tr><td>セグメント数</td><td>{{ meta.refined_count }}セグメント (生の Whisper raw={{ meta.raw_count }} + 軽マージで生成)</td></tr>
+        <tr><td>平均</td><td>{{ meta.avg_chars }}字 / {{ meta.avg_duration }}秒</td></tr>
+        <tr><td>無音検出</td><td>{{ meta.silence_count }}箇所の息継ぎ無音検出済み</td></tr>
+      </table>
+      <p style="margin-top:12px;">校閲済みテキスト.txt は今は raw のままなので、誤変換修正から始めるとよいです。</p>
+    </div>
+  </div>
+
+  <div class="editor-panel">
+    <div class="toolbar">
+      <button class="btn-save" onclick="save()">💾 保存</button>
+      <button class="btn-action" onclick="mergeSelected()">▶ マージ</button>
+      <div class="search-box">
+        <span>🔍</span>
+        <input type="text" id="searchInput" placeholder="検索" oninput="filterSegments()">
+        <span id="matchCount"></span>
+        <span>?</span>
+        <span>{{ segments|length }}行 (全{{ meta.refined_count }})</span>
+      </div>
+    </div>
+
+    <div class="segment-list" id="segmentList">
+      <!-- segments rendered by JS -->
+    </div>
+
+    <div class="meta-bar">
+      <span>プロジェクト: {{ project.base_name }}</span>
+      <span>セグメント: <span id="segCount">{{ segments|length }}</span></span>
+    </div>
+  </div>
+</div>
+
+<div class="status-msg" id="statusMsg"></div>
+
+<script>
+const projectName = {{ project.base_name | tojson }};
+let segments = {{ segments | tojson }};
+let selectedIndices = new Set();
+
+function formatTime(sec) {
+  const m = Math.floor(sec / 60);
+  const s = (sec % 60).toFixed(1);
+  return `${m}:${s.padStart(4, '0')}`;
+}
+
+function calcCPS(seg) {
+  const dur = seg.end - seg.start;
+  return dur > 0 ? (seg.text.length / dur).toFixed(1) : '0.0';
+}
+
+function renderSegments() {
+  const list = document.getElementById('segmentList');
+  const filter = document.getElementById('searchInput').value.toLowerCase();
+  let html = '';
+  let matchCount = 0;
+
+  segments.forEach((seg, i) => {
+    const matches = !filter || seg.text.toLowerCase().includes(filter);
+    if (!matches) return;
+    matchCount++;
+
+    const cps = parseFloat(calcCPS(seg));
+    const cpsClass = cps > 8 ? 'fast' : '';
+    const dur = (seg.end - seg.start).toFixed(1);
+    const active = selectedIndices.has(i) ? 'selected' : '';
+
+    html += `<div class="segment-row ${active}" data-index="${i}"
+                  onclick="handleRowClick(event, ${i})"
+                  ondblclick="jumpTo(${seg.start})">
+      <div class="seg-num">${i + 1}</div>
+      <div class="seg-time">
+        <span>${formatTime(seg.start)}</span>
+        <span class="duration">${dur}s</span>
+      </div>
+      <div class="seg-cps ${cpsClass}">${cps} cps</div>
+      <div class="seg-text">
+        <input value="${seg.text.replace(/"/g, '&quot;')}"
+               onchange="updateText(${i}, this.value)"
+               onclick="event.stopPropagation()"
+               onfocus="jumpTo(${seg.start})">
+      </div>
+    </div>`;
+  });
+
+  list.innerHTML = html;
+  document.getElementById('segCount').textContent = segments.length;
+  if (filter) {
+    document.getElementById('matchCount').textContent = `${matchCount}件`;
+  } else {
+    document.getElementById('matchCount').textContent = '';
+  }
+}
+
+function handleRowClick(e, idx) {
+  if (e.target.tagName === 'INPUT') return;
+  if (e.shiftKey) {
+    if (selectedIndices.has(idx)) {
+      selectedIndices.delete(idx);
+    } else {
+      selectedIndices.add(idx);
+    }
+  } else {
+    selectedIndices.clear();
+    selectedIndices.add(idx);
+    jumpTo(segments[idx].start);
+  }
+  renderSegments();
+}
+
+function jumpTo(time) {
+  document.getElementById('player').currentTime = time;
+}
+
+function updateText(idx, val) {
+  segments[idx].text = val;
+}
+
+function filterSegments() {
+  renderSegments();
+}
+
+async function save() {
+  showStatus('保存中...');
+  const res = await fetch('/api/save', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({project: projectName, segments}),
+  });
+  const data = await res.json();
+  if (data.ok) {
+    showStatus(`保存完了 → ${data.output.split('/').pop()}`);
+  } else {
+    showStatus('エラー: ' + (data.error || '保存失敗'), true);
+  }
+}
+
+async function mergeSelected() {
+  const indices = [...selectedIndices].sort((a, b) => a - b);
+  if (indices.length < 2) {
+    showStatus('マージするには Shift+クリック で2行以上選択してください');
+    return;
+  }
+  const res = await fetch('/api/merge', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({segments, indices}),
+  });
+  const data = await res.json();
+  segments = data.segments;
+  selectedIndices.clear();
+  renderSegments();
+  showStatus(`${indices.length}行をマージしました`);
+}
+
+function showStatus(msg, isError) {
+  const el = document.getElementById('statusMsg');
+  el.textContent = msg;
+  el.style.background = isError ? '#ff3b30' : '#0a84ff';
+  el.style.display = 'block';
+  setTimeout(() => el.style.display = 'none', 3000);
+}
+
+// Sync active row with video playback
+const player = document.getElementById('player');
+if (player) {
+  player.addEventListener('timeupdate', () => {
+    const t = player.currentTime;
+    document.querySelectorAll('.segment-row').forEach(row => {
+      const idx = parseInt(row.dataset.index);
+      const seg = segments[idx];
+      if (seg && t >= seg.start && t < seg.end) {
+        row.classList.add('active');
+      } else {
+        row.classList.remove('active');
+      }
+    });
+  });
+}
+
+renderSegments();
+</script>
+{% endif %}
+</body>
+</html>
