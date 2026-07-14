@@ -243,7 +243,22 @@ pip install -r requirements.txt
 
 > **補足：** `git pull` でコードを最新に取得し、`pip install` で新しく追加された依存ライブラリがあればインストールされます。既存のプロジェクトデータ（`projects/` フォルダ内）や `config.yaml` はそのまま残ります。
 
+## フォントについて
+
+デフォルト設定のフォントは **Noto Sans JP**（日本語）と **Inter**（英語）です。これらが未インストールの場合、自動的に **ヒラギノ角ゴシック W7**（日本語）と **Helvetica Neue Bold**（英語）で出力します（macOS標準フォントなので必ず表示されます）。
+
+指定通りの Noto Sans JP / Inter を使いたい場合は、以下からダウンロードしてインストールしてください（ttfファイルをダブルクリック →「インストール」）。
+
+- [Noto Sans JP（Google Fonts）](https://fonts.google.com/noto/specimen/Noto+Sans+JP)
+- [Inter（Google Fonts）](https://fonts.google.com/specimen/Inter)
+
+> **重要：** Final Cut Proは、FCPXMLで指定されたフォントが未インストールだと**テロップのスタイル全体を破棄して6ptで表示**するため、テロップが見えなくなります。本ツールのフォールバックはこれを防ぐためのものです。
+
 ## よくあるトラブル
+
+### テロップが画面に表示されない／異常に小さい
+
+指定フォントが未インストールの環境で古いバージョン（v1.0.2以前）で書き出したFCPXMLの症状です。v1.0.3以降で書き出し直してください（インストール済みフォントに自動フォールバックします）。
 
 ### アプリが「壊れているため開けません」と表示される
 
