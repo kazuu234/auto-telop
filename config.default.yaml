@@ -7,7 +7,7 @@ style:
   bold_en: true
   outline_width: 6
   outline_width_en: 5
-  position_y: -80              # 縦位置 (% -100=最下部 〜 0=中央)  -80 ≈ 画面下から約10%
+  position_y: -40              # 縦位置: 画面高さに対する% (0=中央, -40 ≈ 画面下から10〜14%, -50より下は画面外に注意)
   position_x: 0
 
 whisper:

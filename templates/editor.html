@@ -195,12 +195,12 @@ video { width: 100%; border-radius: 6px; background: #000; }
           <input type="range" id="styleFontSizeEn" min="16" max="120" value="{{ style.font_size_en or 56 }}" oninput="updatePreview()">
         </div>
         <div class="style-field">
-          <label>縦位置: <span id="posYVal">{{ style.position_y if style.position_y is defined else -80 }}</span>%</label>
-          <input type="range" id="stylePosY" min="-100" max="100" value="{{ style.position_y if style.position_y is defined else -80 }}" oninput="updatePreview()">
+          <label>縦位置: <span id="posYVal">{{ style.position_y if style.position_y is defined else -40 }}</span>% (0=中央 / -40≈下から1割)</label>
+          <input type="range" id="stylePosY" min="-48" max="48" value="{{ style.position_y if style.position_y is defined else -40 }}" oninput="updatePreview()">
         </div>
         <div class="style-field">
           <label>横位置: <span id="posXVal">{{ style.position_x or 0 }}</span>%</label>
-          <input type="range" id="stylePosX" min="-100" max="100" value="{{ style.position_x or 0 }}" oninput="updatePreview()">
+          <input type="range" id="stylePosX" min="-48" max="48" value="{{ style.position_x or 0 }}" oninput="updatePreview()">
         </div>
         <div class="style-field">
           <label>日本語縁取り: <span id="outlineVal">{{ style.outline_width or 6 }}</span>px</label>
@@ -452,8 +452,10 @@ function updatePreview() {
     -${shadowSize}px  ${shadowSize}px 0 #000,
      ${shadowSize}px  ${shadowSize}px 0 #000`;
 
-  const topPct = 50 - (posY / 2);
-  const leftPct = 50 + (posX / 2);
+  // FCPのadjust-transform positionは画面サイズに対する%（実機検証済み）。
+  // posY=-40 → 中心から40%下 → top 90%（下から10%）
+  const topPct = 50 - posY;
+  const leftPct = 50 + posX;
   el.style.top = topPct + '%';
   el.style.left = leftPct + '%';
   el.style.transform = 'translate(-50%, -50%)';

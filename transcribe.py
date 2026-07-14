@@ -175,7 +175,11 @@ def run_pipeline(video_path, project_dir, progress_cb=None):
     report("FCPXML生成中")
     from fcpxml import generate_pipeline_fcpxml
     fcpxml_path = os.path.join(project_dir, f"{base}_pipeline.fcpxml")
-    generate_pipeline_fcpxml(refined, video_path, fcpxml_path)
+    # スタイル(Noto Sans JP 60px等・位置)を必ず適用する。未指定だと
+    # Helvetica 48px・位置なしのフォールバックになり、FCPでサイズが
+    # 反映されず(6pt扱い)テロップが見えなくなる。
+    generate_pipeline_fcpxml(refined, video_path, fcpxml_path,
+                             style_config=config.get("style", {}))
 
     hook_path = os.path.join(project_dir, ".telop_post_hook.json")
     with open(hook_path, "w", encoding="utf-8") as f:

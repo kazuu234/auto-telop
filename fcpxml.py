@@ -72,17 +72,71 @@ def _write_fcpxml(root, output_path):
     return output_path
 
 
-def _build_text_style_attrs(font, font_size, bold_val, outline):
-    """Build text-style attributes dict for FCPXML."""
+# フォント未インストール時、FCPはスタイル一式を破棄して Helvetica Regular 6pt に
+# 落とし、テロップが事実上不可視になる（実機検証済み）。そのため生成時に
+# フォントの存在を確認し、無ければ macOS 標準フォントへフォールバックする。
+_FONT_DIRS = [
+    os.path.expanduser("~/Library/Fonts"),
+    "/Library/Fonts",
+    "/System/Library/Fonts",
+    "/System/Library/Fonts/Supplemental",
+]
+
+# macOS に必ず入っているファミリー（ファイル名が日本語等でスキャンに掛からない
+# ものもあるため、名前で即 OK 扱いにする）
+_SYSTEM_FONTS = {
+    "hiragino sans", "hiragino kaku gothic pron", "hiragino mincho pron",
+    "helvetica", "helvetica neue", "arial", "avenir", "avenir next",
+}
+
+
+def _font_installed(family):
+    """Best-effort check: does a font file matching this family exist?"""
+    token = family.replace(" ", "").lower()
+    for d in _FONT_DIRS:
+        try:
+            names = os.listdir(d)
+        except OSError:
+            continue
+        for fn in names:
+            # 前方一致で判定（部分一致だと "SignPainter" が "Inter" に誤マッチする）
+            if fn.replace(" ", "").lower().startswith(token):
+                return True
+    return False
+
+
+def _resolve_font(family, is_japanese):
+    """Return (family, fontFace or None), falling back to system fonts.
+
+    フォールバック時は fontFace でウェイトを明示する（FCP実機で描画確認済み:
+    Hiragino Sans W7 / Helvetica Neue Bold）。
+    """
+    if family.lower() in _SYSTEM_FONTS or _font_installed(family):
+        return family, None
+    if is_japanese:
+        return "Hiragino Sans", "W7"
+    return "Helvetica Neue", "Bold"
+
+
+def _build_text_style_attrs(font, font_size, bold_val, outline, font_face=None):
+    """Build text-style attributes dict for FCPXML.
+
+    font_face が指定された場合は fontFace でウェイトを指定し bold は付けない
+    （フォールバックフォント用）。
+    """
     attrs = {
         "font": font,
         "fontSize": str(font_size),
         "fontColor": "1 1 1 1",
-        "bold": bold_val,
         "alignment": "center",
     }
+    if font_face:
+        attrs["fontFace"] = font_face
+    else:
+        attrs["bold"] = bold_val
     outline_val = int(outline)
     if outline_val > 0:
+        # 負の strokeWidth = 塗り+縁取り（正だと塗りが抜けて半透明に見える。実機検証済み）
         attrs["strokeColor"] = "0 0 0 1"
         attrs["strokeWidth"] = str(-outline_val)
     return attrs
@@ -90,8 +144,9 @@ def _build_text_style_attrs(font, font_size, bold_val, outline):
 
 def _add_text_with_dual_font(title_el, seg_text, idx, style_config):
     """Add text and text-style-def elements (DTD order: text*, text-style-def*)."""
-    font_ja = style_config.get("font_name", "Noto Sans JP")
-    font_en = style_config.get("font_name_en", font_ja)
+    font_ja, face_ja = _resolve_font(style_config.get("font_name", "Noto Sans JP"), True)
+    font_en, face_en = _resolve_font(
+        style_config.get("font_name_en", style_config.get("font_name", "Noto Sans JP")), False)
     size_ja = style_config.get("font_size", 60)
     size_en = style_config.get("font_size_en", size_ja)
     bold_ja = "1" if style_config.get("bold", True) else "0"
@@ -105,7 +160,7 @@ def _add_text_with_dual_font(title_el, seg_text, idx, style_config):
         ts = ET.SubElement(text_el, "text-style", ref=f"ts{idx}_ja")
         ts.text = seg_text
         tsd = ET.SubElement(title_el, "text-style-def", id=f"ts{idx}_ja")
-        attrs = _build_text_style_attrs(font_ja, size_ja, bold_ja, outline_ja)
+        attrs = _build_text_style_attrs(font_ja, size_ja, bold_ja, outline_ja, face_ja)
         ET.SubElement(tsd, "text-style", **attrs)
         return
 
@@ -116,27 +171,28 @@ def _add_text_with_dual_font(title_el, seg_text, idx, style_config):
         ts = ET.SubElement(text_el, "text-style", ref=ref_id)
         ts.text = chunk
         if is_ascii:
-            style_defs.append((ref_id, font_en, size_en, bold_en, outline_en))
+            style_defs.append((ref_id, font_en, size_en, bold_en, outline_en, face_en))
         else:
-            style_defs.append((ref_id, font_ja, size_ja, bold_ja, outline_ja))
+            style_defs.append((ref_id, font_ja, size_ja, bold_ja, outline_ja, face_ja))
 
-    for ref_id, font, size, bold, outline in style_defs:
+    for ref_id, font, size, bold, outline, face in style_defs:
         tsd = ET.SubElement(title_el, "text-style-def", id=ref_id)
-        attrs = _build_text_style_attrs(font, size, bold, outline)
+        attrs = _build_text_style_attrs(font, size, bold, outline, face)
         ET.SubElement(tsd, "text-style", **attrs)
 
 
 def _add_position(title_el, style_config, width=1920, height=1080):
     """Add position via adjust-transform.
 
-    Converts percentage values (-100~100) to pixel coordinates from center.
+    FCPの adjust-transform position は「画面サイズに対する%」（中心からの
+    オフセット、Yは高さ基準）。実機検証: y=-45 ≒ 下から10%、y=-76 は画面外。
+    ピクセル変換してはいけない。設定値(%)をそのまま出力する。
+    例: position_y=-40 → 画面下から約10〜14%の位置。
     """
-    pos_x_pct = style_config.get("position_x", 0)
-    pos_y_pct = style_config.get("position_y", -85)
-    pos_x_px = round(pos_x_pct / 100 * (width / 2))
-    pos_y_px = round(pos_y_pct / 100 * (height / 2))
+    pos_x = style_config.get("position_x", 0)
+    pos_y = style_config.get("position_y", -40)
     ET.SubElement(title_el, "adjust-transform",
-                  position=f"{pos_x_px} {pos_y_px}")
+                  position=f"{pos_x} {pos_y}")
 
 
 def generate_pipeline_fcpxml(segments, video_path, output_path, style_config=None):
