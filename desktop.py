@@ -111,4 +111,9 @@ def main():
 
 
 if __name__ == "__main__":
+    # PyInstaller化したアプリでは必須。Whisper(torch)が処理中に生成する
+    # ワーカープロセスがアプリ本体を再実行してしまい、文字起こし中に
+    # 2つ目のGUIウインドウが立ち上がる。freeze_support()がそれを横取りする。
+    import multiprocessing
+    multiprocessing.freeze_support()
     main()
