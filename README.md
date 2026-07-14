@@ -264,6 +264,8 @@ pip install -r requirements.txt
 
 署名していないアプリのため、macOSの検疫属性（`com.apple.quarantine`）で起動がブロックされている状態です。以下の手順で解消できます。
 
+> **画面写真つきの手順はこちら → [セットアップガイド](https://kazuu234.github.io/auto-telop/install_guide.html)**
+
 1. ダウンロードした `AutoTelop-mac.zip` を展開する
 2. `AutoTelop.app` をアプリケーションフォルダ（または任意の場所）へ移動する
 3. 同じフォルダにある `初回セットアップ.command` を**ダブルクリック**する →「開けません」と出たらOKで閉じる
