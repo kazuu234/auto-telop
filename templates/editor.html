@@ -108,6 +108,8 @@ video { width: 100%; border-radius: 6px; background: #000; }
 .style-preview-text {
   position: absolute; width: 100%; text-align: center;
   color: #fff; padding: 0 16px;
+  /* FCPのBasic Titleは自動改行しないため、プレビューも折り返さない */
+  white-space: nowrap; overflow: visible;
   text-shadow: -2px -2px 0 #000, 2px -2px 0 #000, -2px 2px 0 #000, 2px 2px 0 #000;
   transition: all 0.2s;
 }
@@ -439,13 +441,16 @@ function updatePreview() {
   document.getElementById('posXVal').textContent = posX;
   document.getElementById('outlineVal').textContent = outline;
 
+  // FCPのタイトルは1920x1080基準キャンバスで描画される（動画解像度に依存しない）。
+  // 実機計測: 74ptのテロップの文字高 ≒ 画面高の74/1080。そのままの比率で縮小する。
   const scale = box.offsetHeight / 1080;
-  const previewSize = Math.max(10, Math.round(size * scale * 1.333));
+  const previewSize = Math.max(8, Math.round(size * scale));
   el.style.fontFamily = `"${fontEn}", "${font}", sans-serif`;
   el.style.fontSize = previewSize + 'px';
   el.style.fontWeight = bold ? '700' : '400';
 
-  const shadowSize = Math.max(1, Math.round(outline * 0.7));
+  // 縁取りもプレビューと同じ縮尺で縮める
+  const shadowSize = Math.max(1, Math.round(outline * scale));
   el.style.textShadow = `
     -${shadowSize}px -${shadowSize}px 0 #000,
      ${shadowSize}px -${shadowSize}px 0 #000,
