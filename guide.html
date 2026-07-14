@@ -393,7 +393,7 @@ Done. App is at: dist/AutoTelop.app</span></pre>
     <p><code>dist/AutoTelop.app</code> が生成されます。ダブルクリックで起動できます。</p>
 
     <div class="callout">
-      <strong>「壊れているため開けません」と出たら：</strong> 署名していないアプリのため、ダウンロード直後は macOS の検疫属性で起動がブロックされます。配布zipに同梱の <strong>「初回セットアップ.command」をダブルクリック</strong>すると自動で解除され、以降は普通にダブルクリックで起動できます（初回のみ）。
+      <strong>「壊れているため開けません」と出たら：</strong> 署名していないアプリのため、ダウンロード直後は macOS の検疫属性で起動がブロックされます。配布zipに同梱の「初回セットアップ.command」を実行すると解除できます（初回のみ）。macOS 15以降はダブルクリック後に<strong>システム設定 → プライバシーとセキュリティ →「このまま開く」</strong>での承認が必要です（下の「よくあるトラブル」に手順あり）。
     </div>
 
     <div class="callout success">
@@ -555,10 +555,11 @@ segment:
     <ol style="margin:8px 0 8px 20px;">
       <li>ダウンロードした <code>AutoTelop-mac.zip</code> を展開する</li>
       <li><code>AutoTelop.app</code> をアプリケーションフォルダ（または任意の場所）へ移動する</li>
-      <li>同じフォルダにある <strong>「初回セットアップ.command」をダブルクリック</strong>する</li>
+      <li>同じフォルダにある <strong>「初回セットアップ.command」をダブルクリック</strong>する →「開けません」と出たらOKで閉じる</li>
+      <li><strong>システム設定 → プライバシーとセキュリティ</strong> を開き、下の方にある「<strong>"初回セットアップ.command"の使用がブロックされました</strong>」の横の「<strong>このまま開く</strong>」をクリック → パスワード/Touch IDで承認</li>
       <li>ターミナルに <code>[OK] 完了しました！</code> と表示されたら、<code>AutoTelop.app</code> をダブルクリックで起動できます</li>
     </ol>
-    <p style="color:#666; font-size:13px;">「初回セットアップ.command」は、検疫属性を取り除く <code>xattr -cr</code> を実行するだけの安全なスクリプトです。</p>
+    <p style="color:#666; font-size:13px;">macOS 14以前では、手順3の代わりに「初回セットアップ.command」を<strong>右クリック →「開く」→「開く」</strong>でも実行できます（macOS 15以降はシステム設定での承認が必要）。「初回セットアップ.command」は、検疫属性を取り除く <code>xattr -cr</code> を実行するだけの安全なスクリプトです。</p>
 
     <h3 style="font-size:15px; margin:16px 0 8px; font-weight:700;"><code>ffprobe: command not found</code> と出る／抽出がすぐ失敗する</h3>
     <p>FFmpegが入っていません。<code>brew install ffmpeg</code> を実行してください。</p>
