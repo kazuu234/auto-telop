@@ -8,6 +8,7 @@
   - **FCPXML**：従来どおりフォント・サイズ・縁取り・位置まで反映（Final Cut Pro向け）。
   - **SRT / WebVTT**：テキストとタイミングを出力（VTTは縦位置も反映）。見た目は各編集ソフト側で一括設定します（Auto Telopのテロップは全行同じスタイルなので初回のみ設定すればOK）。
   - 選んだ出力形式・保存先は次回の初期値として記憶されます。
+- **Windows対応**（GUIアプリのWindows版ビルド対応: `media_env` のffmpeg探索、`build_windows.bat`、SmartScreen手順のドキュメント）。配布アセット `AutoTelop-win.zip` はアプリ内アップデータが自動判別します。
 
 ## v1.0.5
 

@@ -297,7 +297,7 @@
 
   <header class="header">
     <h1><span>Auto Telop</span><br>セットアップガイド</h1>
-    <p class="subtitle">動画を渡すだけで自動テロップ。Mac用のGUIアプリで、Whisper文字起こし → 校閲 → Final Cut Pro用のFCPXMLを出力します。ターミナルもブラウザも不要です。</p>
+    <p class="subtitle">動画を渡すだけで自動テロップ。Mac / Windows対応のGUIアプリで、Whisper文字起こし → 校閲 → Final Cut Pro用のFCPXML（Windowsの場合はSRT/WebVTT）を出力します。ターミナルもブラウザも不要です。</p>
   </header>
 
   <nav class="toc">
@@ -345,9 +345,10 @@
     <span class="section-num">STEP 2</span>
     <h2>必要なもの</h2>
     <ul class="checklist">
-      <li><strong>Mac</strong>（macOS 12以降を推奨）</li>
-      <li><strong>FFmpeg</strong>（動画の解析に使います。<code>brew install ffmpeg</code>）</li>
-      <li><strong>Final Cut Pro</strong>（FCPXMLのインポート先）</li>
+      <li><strong>Mac</strong>（macOS 12以降を推奨）<strong>または Windows</strong>（10 / 11）</li>
+      <li><strong>FFmpeg</strong>（動画の解析に使います。Macは <code>brew install ffmpeg</code>、Windowsは <code>winget install ffmpeg</code>）</li>
+      <li><strong>Final Cut Pro</strong>（Mac版のFCPXML出力先。Windowsでは代わりに<strong>SRT / WebVTT</strong>を出力してPremiere Pro / Filmoraなどへ）</li>
+      <li>（Windowsのみ）<strong>WebView2ランタイム</strong>（Windows 11は標準搭載。Windows 10は未導入の場合のみ導入）</li>
       <li>ディスク空き容量 <strong>3GB以上</strong>（Whisperモデル用）</li>
     </ul>
     <div class="callout">
@@ -399,6 +400,10 @@ Done. App is at: dist/AutoTelop.app</span></pre>
 
     <div class="callout success">
       <strong>ビルドせずに試したいときは</strong> <code>python desktop.py</code> でも同じGUIアプリが起動します（先に <code>python3 -m venv venv &amp;&amp; source venv/bin/activate &amp;&amp; pip install -r requirements.txt</code> が必要）。
+    </div>
+
+    <div class="callout">
+      <strong>Windowsの場合：</strong> GitHub Releases の <code>AutoTelop-win.zip</code> を展開して <code>AutoTelop.exe</code> を起動するだけでOK（自分でビルドする場合はWindows実機で <code>build_windows.bat</code> を実行、Python 3.9以上が必要）。初回起動時は「WindowsによってPCが保護されました」と表示されるので、<strong>「詳細情報」→「実行」</strong>をクリックしてください（未署名アプリのSmartScreen警告です。Macの初回セットアップのような別作業は不要）。
     </div>
   </section>
 
@@ -476,6 +481,10 @@ Done. App is at: dist/AutoTelop.app</span></pre>
     <h2>保存して編集ソフトに読み込む</h2>
 
     <p>校閲画面のツールバーで<strong>出力形式を選んでから</strong><strong>「💾 保存」</strong>を押すと、<strong>保存先を選ぶダイアログ</strong>が表示されます。次回は前回選んだ形式・フォルダが初期値になります。</p>
+
+    <div class="callout">
+      <strong>Windowsをお使いの場合：</strong> Final Cut ProはMac専用アプリのため、出力形式は <strong>SRT字幕</strong> または <strong>WebVTT</strong> を選んでください（FCPXMLではありません）。Premiere Pro / Filmora などに読み込めます。
+    </div>
 
     <div class="editor-desc">
       <div class="editor-card">
@@ -598,6 +607,15 @@ segment:
 
     <h3 style="font-size:15px; margin:16px 0 8px; font-weight:700;">（ビルド時）<code>command not found: python</code> と出る</h3>
     <p><code>python3</code> に読み替えて実行してください。<code>pip</code> も <code>pip3</code> に変えてください。</p>
+
+    <h3 style="font-size:15px; margin:16px 0 8px; font-weight:700;">（Windows）SmartScreenの警告が出る</h3>
+    <p>未署名のアプリのためです。「WindowsによってPCが保護されました」画面で<strong>「詳細情報」→「実行」</strong>をクリックすれば起動できます。</p>
+
+    <h3 style="font-size:15px; margin:16px 0 8px; font-weight:700;">（Windows）ffmpegが見つからない</h3>
+    <p><code>winget install ffmpeg</code> などでインストールした直後は、既に起動中のアプリにPATHの変更が反映されないことがあります。<strong>アプリを再起動</strong>してください。</p>
+
+    <h3 style="font-size:15px; margin:16px 0 8px; font-weight:700;">（Windows）ウィンドウが真っ白・開かない</h3>
+    <p>WebView2ランタイムが未導入の可能性があります。<a href="https://developer.microsoft.com/microsoft-edge/webview2/" target="_blank">Microsoft Edge WebView2 Runtime</a>を導入してください（Windows 11では標準搭載）。</p>
   </section>
 
   <footer class="footer">

@@ -2,7 +2,7 @@
 
 動画を渡すだけで自動テロップ。Whisperで文字起こし → 校閲 → Final Cut Pro用のFCPXMLを出力します。
 
-**Mac用のGUIアプリ**として動作します。アプリを起動し、動画をドラッグ&ドロップするだけ。ターミナルもブラウザも不要です。
+**Mac / Windows対応のGUIアプリ**として動作します。アプリを起動し、動画をドラッグ&ドロップするだけ。ターミナルもブラウザも不要です。Mac版は従来どおり `AutoTelop.app`、Windows版は新たに `AutoTelop-win.zip`（Releasesからビルド済みzipを入手、または `build_windows.bat` で自分でビルド）で提供します。
 
 ## 全体の流れ
 
@@ -47,6 +47,43 @@ cd ~/auto-telop
 ### アプリの更新
 
 アプリ右上の「更新を確認」ボタンで、GitHub Releases の最新版を確認できます。新しいバージョンがあれば「ダウンロード」でダウンロードフォルダに保存されるので、既存のアプリと置き換えてください。
+
+---
+
+## Windows版を使う
+
+### 必要なもの
+
+- **Windows 10 / 11**
+- **FFmpeg**（動画の解析に使います）
+- **WebView2ランタイム**（Windows 11 は標準搭載。Windows 10 は未導入の場合のみ、[Microsoft公式](https://developer.microsoft.com/microsoft-edge/webview2/)から導入してください）
+- Final Cut Pro は Mac専用アプリのため、Windowsでは出力形式に **SRT / WebVTT** を選び、Premiere Pro / Filmora など対応編集ソフトに読み込んでください（FCPXMLはFinal Cut Pro向けのため利用できません）
+
+### FFmpegをインストールする
+
+```powershell
+winget install ffmpeg
+```
+
+`choco install ffmpeg` や `scoop install ffmpeg` でも構いません。`media_env.py` が winget / chocolatey / scoop の主要インストール先を自動で探索するので、通常は追加のPATH設定は不要です。
+
+### 使い方
+
+1. GitHub Releases から **AutoTelop-win.zip** をダウンロードして展開する
+2. `AutoTelop.exe` をダブルクリックで起動する
+3. 「WindowsによってPCが保護されました」と表示されたら、**「詳細情報」→「実行」** をクリックする（署名していないアプリのためのSmartScreen警告です。Macの初回セットアップ`.command`のような別途の儀式は不要で、この操作だけでOKです）
+4. 以降の使い方はMac版と同じ（動画をドロップ → 抽出 → 校閲 → 出力形式を選んで保存）
+
+### アプリのビルド（配布用 .exe を作る）
+
+配布用のビルド済みzipは GitHub Releases から入手できます。自分でビルドする場合（Windows実機・Python 3.9以上が必要）：
+
+```bat
+cd auto-telop
+build_windows.bat
+```
+
+`dist\AutoTelop\AutoTelop.exe` と `dist\AutoTelop-win.zip` が生成されます。
 
 ---
 
@@ -309,3 +346,15 @@ ffmpeg -i input.mov -c:v libx264 -c:a aac output.mp4
 ### ポート5050が使えない
 
 `app.py` の最後の行にあるポート番号を変更してください（例: 5051）。
+
+### （Windows）SmartScreenの警告が出る
+
+未署名のアプリのためです。「詳細情報」→「実行」をクリックすれば起動できます。
+
+### （Windows）ffmpegが見つからない
+
+`winget install ffmpeg` などでインストールした直後は、既に起動中のアプリにPATHの変更が反映されないことがあります。**アプリを再起動**してください。
+
+### （Windows）ウィンドウが真っ白・開かない
+
+WebView2ランタイムが未導入の可能性があります。[Microsoft Edge WebView2 Runtime](https://developer.microsoft.com/microsoft-edge/webview2/)を導入してください（Windows 11では標準搭載）。
