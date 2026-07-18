@@ -171,7 +171,11 @@ def save():
     project_name = data["project"]
     segments = data["segments"]
     output_path = data.get("output_path")  # optional custom destination
+
+    from embed_te import FORMAT_EXT
     output_format = data.get("output_format") or "fcpxml"  # fcpxml / srt / vtt
+    if output_format not in FORMAT_EXT:
+        output_format = "fcpxml"
 
     project = next((p for p in _find_projects() if p["base_name"] == project_name), None)
     if not project:
@@ -188,18 +192,29 @@ def save():
         for seg in segments:
             f.write(seg["text"] + "\n")
 
-    from reapply import reapply
-    reapply(project_dir, project_name)
+    from transcribe import load_config
+    config = load_config()
 
-    # Remember the chosen output directory and format for next time.
-    out_dir = None
-    if output_path:
-        out_dir = output_path if os.path.isdir(output_path) else os.path.dirname(output_path)
-    _remember_output_prefs(out_dir, output_format)
+    # 校閲済み.fcpxml はFCP専用の中間成果物。SRT/VTT保存では再生成をスキップする
+    # （校閲済みテキストは直前に書き込み済みなので失われるものはない）。
+    if output_format == "fcpxml":
+        from reapply import reapply
+        reapply(project_dir, project_name, config=config)
 
     from embed_te import embed_telop
     output = embed_telop(project_dir, project_name,
-                         output_path=output_path, output_format=output_format)
+                         output_path=output_path, output_format=output_format,
+                         config=config, segments=segments)
+
+    # 保存先/形式を記憶するのはエクスポート成功後のみ（失敗時にprefsを汚さない）。
+    out_dir = None
+    if output_path:
+        # 拡張子なしの裸ファイル名（例: "out.srt"）だと dirname が "" になり、
+        # "" is not None で skip-check の out_dir is None 分岐を素通りしてしまう
+        # ため None に正規化する。
+        out_dir = (output_path if os.path.isdir(output_path)
+                  else os.path.dirname(output_path)) or None
+    _remember_output_prefs(out_dir, output_format)
 
     return jsonify({"ok": True, "output": output, "count": len(segments)})
 
@@ -208,6 +223,10 @@ def _remember_output_prefs(out_dir, output_format=None):
     from transcribe import load_config
     config = load_config()
     out_cfg = config.setdefault("output", {})
+    # 変更が無ければ書き込まない（yaml.dumpはコメントを消すため書き込みを最小化）
+    if (out_dir is None or out_cfg.get("last_save_dir") == out_dir) \
+            and out_cfg.get("default_format") == output_format:
+        return
     if out_dir:
         out_cfg["last_save_dir"] = out_dir
     if output_format:

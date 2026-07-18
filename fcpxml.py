@@ -189,8 +189,12 @@ def _add_position(title_el, style_config, width=1920, height=1080):
     ピクセル変換してはいけない。設定値(%)をそのまま出力する。
     例: position_y=-40 → 画面下から約10〜14%の位置。
     """
-    pos_x = style_config.get("position_x", 0)
-    pos_y = style_config.get("position_y", -40)
+    pos_x = style_config.get("position_x")
+    if pos_x is None:
+        pos_x = 0
+    pos_y = style_config.get("position_y")
+    if pos_y is None:
+        pos_y = -40
     ET.SubElement(title_el, "adjust-transform",
                   position=f"{pos_x} {pos_y}")
 

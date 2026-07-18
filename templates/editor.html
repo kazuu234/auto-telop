@@ -361,14 +361,19 @@ function isNative() {
 
 async function save() {
   const fmt = document.getElementById('outputFormat').value;  // fcpxml / srt / vtt
-  const ext = ({fcpxml: 'fcpxml', srt: 'srt', vtt: 'vtt'})[fmt] || 'fcpxml';
+  const ext = fmt;
   let outputPath = null;
 
   // In the native app, let the user choose the save destination.
   if (isNative() && window.pywebview.api.pick_save_path) {
     const defaultName = `${projectName}_テロップ付き.${ext}`;
+    let lastDir = null;
     try {
-      outputPath = await window.pywebview.api.pick_save_path(defaultName);
+      const r = await fetch('/api/last-save-dir');
+      lastDir = (await r.json()).dir;
+    } catch (e) { /* no last dir available */ }
+    try {
+      outputPath = await window.pywebview.api.pick_save_path(defaultName, lastDir);
     } catch (e) { /* fall through to default */ }
     if (outputPath === null || outputPath === '') {
       return;  // user cancelled the dialog
