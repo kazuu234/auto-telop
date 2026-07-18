@@ -26,6 +26,10 @@ video { width: 100%; border-radius: 6px; background: #000; }
 .btn-save:hover { background: #0070e0; }
 .btn-action { background: #333; color: #ccc; }
 .btn-action:hover { background: #444; }
+.fmt-select {
+  padding: 6px 8px; border: 1px solid #444; border-radius: 4px;
+  background: #2a2a2a; color: #e0e0e0; font-size: 12px; cursor: pointer;
+}
 
 .search-box {
   margin-left: auto; display: flex; align-items: center; gap: 6px;
@@ -231,6 +235,11 @@ video { width: 100%; border-radius: 6px; background: #000; }
     <div class="toolbar">
       <button class="btn-action" onclick="location.href='/'">← ライブラリ</button>
       <button class="btn-save" onclick="save()">💾 保存</button>
+      <select id="outputFormat" class="fmt-select" title="出力形式">
+        <option value="fcpxml">Final Cut Pro (FCPXML)</option>
+        <option value="srt">SRT字幕 (Premiere / Filmora 等)</option>
+        <option value="vtt">WebVTT (Premiere 等)</option>
+      </select>
       <button class="btn-action" onclick="mergeSelected()">▶ マージ</button>
       <div class="search-box">
         <span>🔍</span>
@@ -345,14 +354,19 @@ function filterSegments() {
   renderSegments();
 }
 
-const IS_NATIVE = !!(window.pywebview && window.pywebview.api);
+// pywebview injects window.pywebview.api AFTER load, so check live at call time.
+function isNative() {
+  return !!(window.pywebview && window.pywebview.api);
+}
 
 async function save() {
+  const fmt = document.getElementById('outputFormat').value;  // fcpxml / srt / vtt
+  const ext = ({fcpxml: 'fcpxml', srt: 'srt', vtt: 'vtt'})[fmt] || 'fcpxml';
   let outputPath = null;
 
   // In the native app, let the user choose the save destination.
-  if (IS_NATIVE && window.pywebview.api.pick_save_path) {
-    const defaultName = `${projectName}_テロップ付き.fcpxml`;
+  if (isNative() && window.pywebview.api.pick_save_path) {
+    const defaultName = `${projectName}_テロップ付き.${ext}`;
     try {
       outputPath = await window.pywebview.api.pick_save_path(defaultName);
     } catch (e) { /* fall through to default */ }
@@ -365,7 +379,8 @@ async function save() {
   const res = await fetch('/api/save', {
     method: 'POST',
     headers: {'Content-Type': 'application/json'},
-    body: JSON.stringify({project: projectName, segments, output_path: outputPath}),
+    body: JSON.stringify({project: projectName, segments,
+                          output_path: outputPath, output_format: fmt}),
   });
   const data = await res.json();
   if (data.ok) {
@@ -509,6 +524,17 @@ async function saveStyle() {
       if (opt.value === configFontEn) { opt.selected = true; break; }
     }
     updatePreview();
+  }
+})();
+
+// Preselect the last-used output format.
+(function() {
+  const sel = document.getElementById('outputFormat');
+  const saved = {{ (default_format or 'fcpxml') | tojson }};
+  if (sel) {
+    for (const opt of sel.options) {
+      if (opt.value === saved) { opt.selected = true; break; }
+    }
   }
 })();
 

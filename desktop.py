@@ -64,11 +64,22 @@ class Api:
         return list(result)
 
     def pick_save_path(self, default_name="output.fcpxml"):
-        """Open a native save dialog. Returns chosen path, or '' if cancelled."""
+        """Open a native save dialog. Returns chosen path, or '' if cancelled.
+
+        The file-type filter is inferred from the default_name extension so the
+        dialog matches the chosen export format (fcpxml / srt / vtt).
+        """
+        ext = os.path.splitext(default_name)[1].lower().lstrip(".")
+        labels = {
+            "fcpxml": "Final Cut Pro XML (*.fcpxml)",
+            "srt": "SubRip字幕 (*.srt)",
+            "vtt": "WebVTT字幕 (*.vtt)",
+        }
+        file_types = (labels.get(ext, "すべて (*.*)"), "すべて (*.*)")
         result = self._window.create_file_dialog(
             webview.SAVE_DIALOG,
             save_filename=default_name,
-            file_types=("FCPXML (*.fcpxml)", "すべて (*.*)"),
+            file_types=file_types,
         )
         if not result:
             return ""

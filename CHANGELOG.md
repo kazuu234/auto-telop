@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased
+
+### 新機能
+
+- **出力形式に SRT / WebVTT を追加** — 校閲画面のツールバーで出力形式（Final Cut Pro (FCPXML) / SRT字幕 / WebVTT）を選べるようになりました。Premiere Pro・Filmora・DaVinci など、字幕ファイルを読み込める編集ソフトに対応します。
+  - **FCPXML**：従来どおりフォント・サイズ・縁取り・位置まで反映（Final Cut Pro向け）。
+  - **SRT / WebVTT**：テキストとタイミングを出力（VTTは縦位置も反映）。見た目は各編集ソフト側で一括設定します（Auto Telopのテロップは全行同じスタイルなので初回のみ設定すればOK）。
+  - 選んだ出力形式・保存先は次回の初期値として記憶されます。
+
 ## v1.0.5
 
 ### 修正

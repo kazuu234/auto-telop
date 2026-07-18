@@ -87,10 +87,13 @@ def editor():
     segments = _load_segments(project)
 
     from transcribe import load_config
-    style = load_config().get("style", {})
+    config = load_config()
+    style = config.get("style", {})
+    default_format = config.get("output", {}).get("default_format", "fcpxml")
 
     return render_template("editor.html", project=project, segments=segments,
-                           meta=project, projects=projects, style=style)
+                           meta=project, projects=projects, style=style,
+                           default_format=default_format)
 
 
 @app.route("/video/<path:project_name>")
@@ -168,6 +171,7 @@ def save():
     project_name = data["project"]
     segments = data["segments"]
     output_path = data.get("output_path")  # optional custom destination
+    output_format = data.get("output_format") or "fcpxml"  # fcpxml / srt / vtt
 
     project = next((p for p in _find_projects() if p["base_name"] == project_name), None)
     if not project:
@@ -187,22 +191,27 @@ def save():
     from reapply import reapply
     reapply(project_dir, project_name)
 
-    # Remember the chosen output directory for next time.
+    # Remember the chosen output directory and format for next time.
+    out_dir = None
     if output_path:
         out_dir = output_path if os.path.isdir(output_path) else os.path.dirname(output_path)
-        if out_dir:
-            _remember_save_dir(out_dir)
+    _remember_output_prefs(out_dir, output_format)
 
     from embed_te import embed_telop
-    output = embed_telop(project_dir, project_name, output_path=output_path)
+    output = embed_telop(project_dir, project_name,
+                         output_path=output_path, output_format=output_format)
 
     return jsonify({"ok": True, "output": output, "count": len(segments)})
 
 
-def _remember_save_dir(out_dir):
+def _remember_output_prefs(out_dir, output_format=None):
     from transcribe import load_config
     config = load_config()
-    config.setdefault("output", {})["last_save_dir"] = out_dir
+    out_cfg = config.setdefault("output", {})
+    if out_dir:
+        out_cfg["last_save_dir"] = out_dir
+    if output_format:
+        out_cfg["default_format"] = output_format
     with open(CONFIG_PATH, "w", encoding="utf-8") as f:
         yaml.dump(config, f, allow_unicode=True, default_flow_style=False)
 

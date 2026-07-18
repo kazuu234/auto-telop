@@ -308,7 +308,7 @@
       <li><a href="#install">アプリを準備する</a></li>
       <li><a href="#extract">動画を追加してテロップ抽出</a></li>
       <li><a href="#editor">校閲する</a></li>
-      <li><a href="#export">保存してFCPにインポート</a></li>
+      <li><a href="#export">保存して編集ソフトに読み込む</a></li>
       <li><a href="#config">設定をカスタマイズする</a></li>
       <li><a href="#update">アプリを更新する</a></li>
       <li><a href="#trouble">よくあるトラブル</a></li>
@@ -334,6 +334,7 @@
     <ul class="checklist">
       <li>複数の動画をまとめてドロップすると、順番に抽出されて<strong>ライブラリ（一覧）</strong>に並びます。</li>
       <li>アプリを閉じて再度開いても、以前のエントリーはそのまま残ります。</li>
+      <li><strong>出力形式を選べます</strong>：Final Cut Pro (FCPXML) / SRT字幕 / WebVTT。Premiere Pro や Filmora などにも対応。</li>
       <li>保存時に<strong>出力先フォルダ・ファイル名を自分で選べます</strong>。</li>
       <li>アプリ内から<strong>新しいバージョンの確認・ダウンロード</strong>ができます。</li>
     </ul>
@@ -472,26 +473,46 @@ Done. App is at: dist/AutoTelop.app</span></pre>
   <!-- 6. Export -->
   <section class="section" id="export">
     <span class="section-num">STEP 6</span>
-    <h2>保存してFCPにインポート</h2>
+    <h2>保存して編集ソフトに読み込む</h2>
 
-    <p><strong>「💾 保存」</strong>を押すと、<strong>保存先を選ぶダイアログ</strong>が表示されます。フォルダとファイル名を指定して保存してください。次回は前回選んだフォルダが初期値になります。</p>
+    <p>校閲画面のツールバーで<strong>出力形式を選んでから</strong><strong>「💾 保存」</strong>を押すと、<strong>保存先を選ぶダイアログ</strong>が表示されます。次回は前回選んだ形式・フォルダが初期値になります。</p>
 
-    <div class="terminal">
-      <div class="terminal-bar"><div class="terminal-dot r"></div><div class="terminal-dot y"></div><div class="terminal-dot g"></div></div>
-      <pre><span class="comment"># 例：選んだ保存先に出力される</span>
-<span class="output">~/Movies/買ってよかった_テロップ付き.fcpxml</span></pre>
+    <div class="editor-desc">
+      <div class="editor-card">
+        <h4>Final Cut Pro (FCPXML)</h4>
+        <p>Final Cut Pro用。フォント・サイズ・縁取り・位置まで<strong>そのまま反映</strong>されます。</p>
+      </div>
+      <div class="editor-card">
+        <h4>SRT字幕</h4>
+        <p>Premiere Pro / Filmora / DaVinci など幅広い編集ソフト向け。テキスト＋タイミングのみ。</p>
+      </div>
+      <div class="editor-card">
+        <h4>WebVTT</h4>
+        <p>Premiere Pro など向け。テキスト＋タイミング＋おおまかな位置。</p>
+      </div>
+      <div class="editor-card">
+        <h4>スタイルについて</h4>
+        <p>SRT/VTTは見た目情報を持ちません。読み込んだソフト側でフォント・位置を<strong>一度設定すれば全テロップに一括適用</strong>できます。</p>
+      </div>
     </div>
 
-    <p>出力したFCPXMLファイルをFinal Cut Proで開く手順：</p>
+    <h3 style="font-size:15px; margin:20px 0 8px; font-weight:700;">Final Cut Pro に読み込む（FCPXML）</h3>
     <ol style="font-size:15px; padding-left:20px; margin:12px 0;">
       <li style="margin-bottom:6px;">Final Cut Pro を開く</li>
       <li style="margin-bottom:6px;">メニュー → <strong>ファイル → 読み込む → XML...</strong></li>
       <li style="margin-bottom:6px;">保存したFCPXMLファイルを選択</li>
-      <li>タイムラインにテロップ付き動画が読み込まれる</li>
+      <li>タイムラインにテロップ付き動画が読み込まれる（フォント・位置まで反映済み）</li>
+    </ol>
+
+    <h3 style="font-size:15px; margin:20px 0 8px; font-weight:700;">Premiere Pro / Filmora に読み込む（SRT / VTT）</h3>
+    <ol style="font-size:15px; padding-left:20px; margin:12px 0;">
+      <li style="margin-bottom:6px;">映像を編集ソフトのタイムラインに配置する</li>
+      <li style="margin-bottom:6px;">出力した <strong>SRT</strong>（Filmoraは主にSRT）または <strong>VTT</strong> を字幕/キャプションとして読み込む</li>
+      <li>フォント・サイズ・縁取り・位置を編集ソフト側で設定（初回のみ。全テロップに一括適用）</li>
     </ol>
 
     <div class="callout success">
-      <strong>完了！</strong> FCP上でテロップの位置やスタイルをさらに微調整できます。
+      <strong>完了！</strong> 編集ソフト上でテロップの位置やスタイルをさらに微調整できます。
     </div>
   </section>
 

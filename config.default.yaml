@@ -23,3 +23,4 @@ segment:
 output:
   desktop_export: true
   keep_subtitle_file: true
+  default_format: fcpxml       # 既定の出力形式: fcpxml (Final Cut Pro) / srt / vtt

@@ -7,23 +7,33 @@ from datetime import datetime
 
 from fcpxml import generate_styled_fcpxml
 
+# Supported export formats → file extension.
+FORMAT_EXT = {"fcpxml": ".fcpxml", "srt": ".srt", "vtt": ".vtt"}
 
-def default_output_path(base_name, output_dir=None):
+
+def default_output_path(base_name, output_dir=None, output_format="fcpxml"):
     """Build the default export path (Desktop by default, timestamped)."""
     timestamp = datetime.now().strftime("%m%d_%H%M")
     if output_dir is None:
         output_dir = os.path.expanduser("~/Desktop")
-    return os.path.join(output_dir, f"{base_name}_テロップ付き_{timestamp}.fcpxml")
+    ext = FORMAT_EXT.get(output_format, ".fcpxml")
+    return os.path.join(output_dir, f"{base_name}_テロップ付き_{timestamp}{ext}")
 
 
-def embed_telop(project_dir, base_name, output_path=None):
-    """Generate the styled telop FCPXML.
+def embed_telop(project_dir, base_name, output_path=None, output_format="fcpxml"):
+    """Generate the telop export in the requested format.
 
+    output_format: "fcpxml" (Final Cut Pro, styled), "srt" (SubRip captions)
+        or "vtt" (WebVTT captions). SRT/VTT carry text + timing only; the look
+        is applied in the target editor (Premiere / Filmora).
     output_path: full destination path. When None, defaults to
-    ~/Desktop/<base>_テロップ付き_<MMDD_HHMM>.fcpxml (backward compatible).
-    An existing directory path is also accepted; a timestamped filename is
-    generated inside it.
+        ~/Desktop/<base>_テロップ付き_<MMDD_HHMM>.<ext> (backward compatible).
+        An existing directory path is also accepted; a timestamped filename is
+        generated inside it.
     """
+    if output_format not in FORMAT_EXT:
+        output_format = "fcpxml"
+
     from transcribe import load_config
     config = load_config()
     style = config["style"]
@@ -45,14 +55,22 @@ def embed_telop(project_dir, base_name, output_path=None):
         hook = json.load(f)
 
     if not output_path:
-        output_path = default_output_path(base_name)
+        output_path = default_output_path(base_name, output_format=output_format)
     else:
         output_path = os.path.expanduser(output_path)
         if os.path.isdir(output_path):
-            output_path = default_output_path(base_name, output_path)
+            output_path = default_output_path(base_name, output_path, output_format)
         os.makedirs(os.path.dirname(os.path.abspath(output_path)), exist_ok=True)
 
-    generate_styled_fcpxml(segments, hook["video_path"], output_path, style)
+    if output_format == "srt":
+        from subtitles import generate_srt
+        generate_srt(segments, output_path)
+    elif output_format == "vtt":
+        from subtitles import generate_vtt
+        generate_vtt(segments, output_path, style)
+    else:
+        generate_styled_fcpxml(segments, hook["video_path"], output_path, style)
+
     print(f"Generated: {output_path}")
     return output_path
 
