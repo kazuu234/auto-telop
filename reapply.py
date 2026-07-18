@@ -7,7 +7,7 @@ import sys
 from fcpxml import generate_pipeline_fcpxml
 
 
-def reapply(project_dir, base_name):
+def reapply(project_dir, base_name, config=None):
     review_path = os.path.join(project_dir, f"{base_name}_校閲済みテキスト.txt")
     segments_path = os.path.join(project_dir, f"{base_name}_segments.json")
 
@@ -30,8 +30,9 @@ def reapply(project_dir, base_name):
     with open(hook_path, encoding="utf-8") as f:
         hook = json.load(f)
 
-    from transcribe import load_config
-    config = load_config()
+    if config is None:
+        from transcribe import load_config
+        config = load_config()
     style = config.get("style", {})
 
     generate_pipeline_fcpxml(segments, hook["video_path"], output_path, style_config=style)

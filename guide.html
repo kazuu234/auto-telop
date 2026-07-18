@@ -297,7 +297,7 @@
 
   <header class="header">
     <h1><span>Auto Telop</span><br>セットアップガイド</h1>
-    <p class="subtitle">動画を渡すだけで自動テロップ。Mac用のGUIアプリで、Whisper文字起こし → 校閲 → Final Cut Pro用のFCPXMLを出力します。ターミナルもブラウザも不要です。</p>
+    <p class="subtitle">動画を渡すだけで自動テロップ。Mac / Windows対応のGUIアプリで、Whisper文字起こし → 校閲 → Final Cut Pro用のFCPXML（Windowsの場合はSRT/WebVTT）を出力します。ターミナルもブラウザも不要です。</p>
   </header>
 
   <nav class="toc">
@@ -308,7 +308,7 @@
       <li><a href="#install">アプリを準備する</a></li>
       <li><a href="#extract">動画を追加してテロップ抽出</a></li>
       <li><a href="#editor">校閲する</a></li>
-      <li><a href="#export">保存してFCPにインポート</a></li>
+      <li><a href="#export">保存して編集ソフトに読み込む</a></li>
       <li><a href="#config">設定をカスタマイズする</a></li>
       <li><a href="#update">アプリを更新する</a></li>
       <li><a href="#trouble">よくあるトラブル</a></li>
@@ -334,6 +334,7 @@
     <ul class="checklist">
       <li>複数の動画をまとめてドロップすると、順番に抽出されて<strong>ライブラリ（一覧）</strong>に並びます。</li>
       <li>アプリを閉じて再度開いても、以前のエントリーはそのまま残ります。</li>
+      <li><strong>出力形式を選べます</strong>：Final Cut Pro (FCPXML) / SRT字幕 / WebVTT。Premiere Pro や Filmora などにも対応。</li>
       <li>保存時に<strong>出力先フォルダ・ファイル名を自分で選べます</strong>。</li>
       <li>アプリ内から<strong>新しいバージョンの確認・ダウンロード</strong>ができます。</li>
     </ul>
@@ -344,9 +345,10 @@
     <span class="section-num">STEP 2</span>
     <h2>必要なもの</h2>
     <ul class="checklist">
-      <li><strong>Mac</strong>（macOS 12以降を推奨）</li>
-      <li><strong>FFmpeg</strong>（動画の解析に使います。<code>brew install ffmpeg</code>）</li>
-      <li><strong>Final Cut Pro</strong>（FCPXMLのインポート先）</li>
+      <li><strong>Mac</strong>（macOS 12以降を推奨）<strong>または Windows</strong>（10 / 11）</li>
+      <li><strong>FFmpeg</strong>（動画の解析に使います。Macは <code>brew install ffmpeg</code>、Windowsは <code>winget install ffmpeg</code>）</li>
+      <li><strong>Final Cut Pro</strong>（Mac版のFCPXML出力先。Windowsでは代わりに<strong>SRT / WebVTT</strong>を出力してPremiere Pro / Filmoraなどへ）</li>
+      <li>（Windowsのみ）<strong>WebView2ランタイム</strong>（Windows 11は標準搭載。Windows 10は未導入の場合のみ導入）</li>
       <li>ディスク空き容量 <strong>3GB以上</strong>（Whisperモデル用）</li>
     </ul>
     <div class="callout">
@@ -398,6 +400,10 @@ Done. App is at: dist/AutoTelop.app</span></pre>
 
     <div class="callout success">
       <strong>ビルドせずに試したいときは</strong> <code>python desktop.py</code> でも同じGUIアプリが起動します（先に <code>python3 -m venv venv &amp;&amp; source venv/bin/activate &amp;&amp; pip install -r requirements.txt</code> が必要）。
+    </div>
+
+    <div class="callout">
+      <strong>Windowsの場合：</strong> GitHub Releases の <code>AutoTelop-win.zip</code> を展開して <code>AutoTelop.exe</code> を起動するだけでOK（自分でビルドする場合はWindows実機で <code>build_windows.bat</code> を実行、Python 3.9以上が必要）。初回起動時は「WindowsによってPCが保護されました」と表示されるので、<strong>「詳細情報」→「実行」</strong>をクリックしてください（未署名アプリのSmartScreen警告です。Macの初回セットアップのような別作業は不要）。
     </div>
   </section>
 
@@ -472,26 +478,50 @@ Done. App is at: dist/AutoTelop.app</span></pre>
   <!-- 6. Export -->
   <section class="section" id="export">
     <span class="section-num">STEP 6</span>
-    <h2>保存してFCPにインポート</h2>
+    <h2>保存して編集ソフトに読み込む</h2>
 
-    <p><strong>「💾 保存」</strong>を押すと、<strong>保存先を選ぶダイアログ</strong>が表示されます。フォルダとファイル名を指定して保存してください。次回は前回選んだフォルダが初期値になります。</p>
+    <p>校閲画面のツールバーで<strong>出力形式を選んでから</strong><strong>「💾 保存」</strong>を押すと、<strong>保存先を選ぶダイアログ</strong>が表示されます。次回は前回選んだ形式・フォルダが初期値になります。</p>
 
-    <div class="terminal">
-      <div class="terminal-bar"><div class="terminal-dot r"></div><div class="terminal-dot y"></div><div class="terminal-dot g"></div></div>
-      <pre><span class="comment"># 例：選んだ保存先に出力される</span>
-<span class="output">~/Movies/買ってよかった_テロップ付き.fcpxml</span></pre>
+    <div class="callout">
+      <strong>Windowsをお使いの場合：</strong> Final Cut ProはMac専用アプリのため、出力形式は <strong>SRT字幕</strong> または <strong>WebVTT</strong> を選んでください（FCPXMLではありません）。Premiere Pro / Filmora などに読み込めます。
     </div>
 
-    <p>出力したFCPXMLファイルをFinal Cut Proで開く手順：</p>
+    <div class="editor-desc">
+      <div class="editor-card">
+        <h4>Final Cut Pro (FCPXML)</h4>
+        <p>Final Cut Pro用。フォント・サイズ・縁取り・位置まで<strong>そのまま反映</strong>されます。</p>
+      </div>
+      <div class="editor-card">
+        <h4>SRT字幕</h4>
+        <p>Premiere Pro / Filmora / DaVinci など幅広い編集ソフト向け。テキスト＋タイミングのみ。</p>
+      </div>
+      <div class="editor-card">
+        <h4>WebVTT</h4>
+        <p>Premiere Pro など向け。テキスト＋タイミング＋おおまかな位置。</p>
+      </div>
+      <div class="editor-card">
+        <h4>スタイルについて</h4>
+        <p>SRT/VTTは見た目情報を持ちません。読み込んだソフト側でフォント・位置を<strong>一度設定すれば全テロップに一括適用</strong>できます。</p>
+      </div>
+    </div>
+
+    <h3 style="font-size:15px; margin:20px 0 8px; font-weight:700;">Final Cut Pro に読み込む（FCPXML）</h3>
     <ol style="font-size:15px; padding-left:20px; margin:12px 0;">
       <li style="margin-bottom:6px;">Final Cut Pro を開く</li>
       <li style="margin-bottom:6px;">メニュー → <strong>ファイル → 読み込む → XML...</strong></li>
       <li style="margin-bottom:6px;">保存したFCPXMLファイルを選択</li>
-      <li>タイムラインにテロップ付き動画が読み込まれる</li>
+      <li>タイムラインにテロップ付き動画が読み込まれる（フォント・位置まで反映済み）</li>
+    </ol>
+
+    <h3 style="font-size:15px; margin:20px 0 8px; font-weight:700;">Premiere Pro / Filmora に読み込む（SRT / VTT）</h3>
+    <ol style="font-size:15px; padding-left:20px; margin:12px 0;">
+      <li style="margin-bottom:6px;">映像を編集ソフトのタイムラインに配置する</li>
+      <li style="margin-bottom:6px;">出力した <strong>SRT</strong>（Filmoraは主にSRT）または <strong>VTT</strong> を字幕/キャプションとして読み込む</li>
+      <li>フォント・サイズ・縁取り・位置を編集ソフト側で設定（初回のみ。全テロップに一括適用）</li>
     </ol>
 
     <div class="callout success">
-      <strong>完了！</strong> FCP上でテロップの位置やスタイルをさらに微調整できます。
+      <strong>完了！</strong> 編集ソフト上でテロップの位置やスタイルをさらに微調整できます。
     </div>
   </section>
 
@@ -577,6 +607,15 @@ segment:
 
     <h3 style="font-size:15px; margin:16px 0 8px; font-weight:700;">（ビルド時）<code>command not found: python</code> と出る</h3>
     <p><code>python3</code> に読み替えて実行してください。<code>pip</code> も <code>pip3</code> に変えてください。</p>
+
+    <h3 style="font-size:15px; margin:16px 0 8px; font-weight:700;">（Windows）SmartScreenの警告が出る</h3>
+    <p>未署名のアプリのためです。「WindowsによってPCが保護されました」画面で<strong>「詳細情報」→「実行」</strong>をクリックすれば起動できます。</p>
+
+    <h3 style="font-size:15px; margin:16px 0 8px; font-weight:700;">（Windows）ffmpegが見つからない</h3>
+    <p><code>winget install ffmpeg</code> などでインストールした直後は、既に起動中のアプリにPATHの変更が反映されないことがあります。<strong>アプリを再起動</strong>してください。</p>
+
+    <h3 style="font-size:15px; margin:16px 0 8px; font-weight:700;">（Windows）ウィンドウが真っ白・開かない</h3>
+    <p>WebView2ランタイムが未導入の可能性があります。<a href="https://developer.microsoft.com/microsoft-edge/webview2/" target="_blank">Microsoft Edge WebView2 Runtime</a>を導入してください（Windows 11では標準搭載）。</p>
   </section>
 
   <footer class="footer">

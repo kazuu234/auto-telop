@@ -2,16 +2,17 @@
 
 動画を渡すだけで自動テロップ。Whisperで文字起こし → 校閲 → Final Cut Pro用のFCPXMLを出力します。
 
-**Mac用のGUIアプリ**として動作します。アプリを起動し、動画をドラッグ&ドロップするだけ。ターミナルもブラウザも不要です。
+**Mac / Windows対応のGUIアプリ**として動作します。アプリを起動し、動画をドラッグ&ドロップするだけ。ターミナルもブラウザも不要です。Mac版は従来どおり `AutoTelop.app`、Windows版は新たに `AutoTelop-win.zip`（Releasesからビルド済みzipを入手、または `build_windows.bat` で自分でビルド）で提供します。
 
 ## 全体の流れ
 
 ```
-アプリ起動 → 動画をドロップ → 自動でテロップ抽出 → 一覧から選んで校閲 → 保存先を選んでFCPXML出力
+アプリ起動 → 動画をドロップ → 自動でテロップ抽出 → 一覧から選んで校閲 → 出力形式を選んで保存
 ```
 
 - 複数の動画をまとめてドロップすると、順番に抽出されて一覧（ライブラリ）に並びます。
 - アプリを閉じて再度開いても、以前のエントリーはそのまま残ります。
+- **出力形式を選べます**：Final Cut Pro (FCPXML) / SRT字幕 / WebVTT。Premiere Pro や Filmora など他の編集ソフトにも対応。
 - 保存時に出力先フォルダ・ファイル名を選べます。
 - アプリ内から新しいバージョンの確認・ダウンロードができます。
 
@@ -25,8 +26,8 @@
 2. ウィンドウに動画をドラッグ&ドロップ（または「＋ 動画を選択」をクリック）
 3. 抽出が終わると、ライブラリに動画エントリーが追加される
 4. エントリーをクリックすると校閲画面に移動
-5. テロップを校閲したら「💾 保存」→ 保存先を選ぶ → FCPXML出力
-6. 出力したFCPXMLを Final Cut Pro に読み込む（ファイル → 読み込む → XML...）
+5. テロップを校閲したら、**出力形式を選んで**「💾 保存」→ 保存先を選ぶ
+6. 出力ファイルを編集ソフトに読み込む（FCPXML→Final Cut Pro / SRT・VTT→Premiere・Filmora 等）
 
 抽出中も別の動画を追加できます。複数動画は1本ずつ順番に処理されます。
 
@@ -46,6 +47,43 @@ cd ~/auto-telop
 ### アプリの更新
 
 アプリ右上の「更新を確認」ボタンで、GitHub Releases の最新版を確認できます。新しいバージョンがあれば「ダウンロード」でダウンロードフォルダに保存されるので、既存のアプリと置き換えてください。
+
+---
+
+## Windows版を使う
+
+### 必要なもの
+
+- **Windows 10 / 11**
+- **FFmpeg**（動画の解析に使います）
+- **WebView2ランタイム**（Windows 11 は標準搭載。Windows 10 は未導入の場合のみ、[Microsoft公式](https://developer.microsoft.com/microsoft-edge/webview2/)から導入してください）
+- Final Cut Pro は Mac専用アプリのため、Windowsでは出力形式に **SRT / WebVTT** を選び、Premiere Pro / Filmora など対応編集ソフトに読み込んでください（FCPXMLはFinal Cut Pro向けのため利用できません）
+
+### FFmpegをインストールする
+
+```powershell
+winget install ffmpeg
+```
+
+`choco install ffmpeg` や `scoop install ffmpeg` でも構いません。`media_env.py` が winget / chocolatey / scoop の主要インストール先を自動で探索するので、通常は追加のPATH設定は不要です。
+
+### 使い方
+
+1. GitHub Releases から **AutoTelop-win.zip** をダウンロードして展開する
+2. `AutoTelop.exe` をダブルクリックで起動する
+3. 「WindowsによってPCが保護されました」と表示されたら、**「詳細情報」→「実行」** をクリックする（署名していないアプリのためのSmartScreen警告です。Macの初回セットアップ`.command`のような別途の儀式は不要で、この操作だけでOKです）
+4. 以降の使い方はMac版と同じ（動画をドロップ → 抽出 → 校閲 → 出力形式を選んで保存）
+
+### アプリのビルド（配布用 .exe を作る）
+
+配布用のビルド済みzipは GitHub Releases から入手できます。自分でビルドする場合（Windows実機・Python 3.9以上が必要）：
+
+```bat
+cd auto-telop
+build_windows.bat
+```
+
+`dist\AutoTelop\AutoTelop.exe` と `dist\AutoTelop-win.zip` が生成されます。
 
 ---
 
@@ -183,25 +221,34 @@ python app.py
 
 校閲が終わったら **「💾 保存」ボタン** を押してください。
 
-## FCPにインポートする
+## 出力する（FCP / Premiere / Filmora など）
 
-保存ボタンを押すと、FCPXMLファイルが出力されます。
+校閲画面のツールバーで**出力形式を選んでから**「💾 保存」を押します。前回選んだ形式・保存先が次回の初期値になります。
 
-- **アプリ版 / `python desktop.py`**：保存時に**保存先フォルダ・ファイル名を選べます**。前回選んだフォルダが次回の初期値になります。
-- **ブラウザ版（`python app.py`）**：保存先を指定しない場合は従来どおり**デスクトップ**に出力されます。
+| 形式 | 用途 | スタイル |
+|---|---|---|
+| **Final Cut Pro (FCPXML)** | Final Cut Pro | フォント・サイズ・縁取り・位置まで**そのまま反映**（従来どおり） |
+| **SRT字幕** | Premiere Pro / Filmora / DaVinci など幅広い編集ソフト | テキスト＋タイミングのみ。見た目は**各ソフト側で設定** |
+| **WebVTT** | Premiere Pro など | テキスト＋タイミング＋**おおまかな位置**。見た目は各ソフト側で設定 |
 
-```
-例) ~/Desktop/買ってよかった_テロップ付き_0713_1430.fcpxml
-```
+> **SRT/VTTのスタイルについて：** SRT/VTT は字幕ファイルのため、フォントや縁取りなどの見た目情報は持ちません（VTTは縦位置のみ反映）。読み込んだ編集ソフト側で、キャプションのフォント・サイズ・縁取り・位置を一度設定すれば全テロップに一括適用できます。Auto Telopのテロップは全行同じスタイルなので、初回だけ設定すればOKです。
 
-このファイルをFinal Cut Proで開く手順：
+### Final Cut Pro に読み込む（FCPXML）
 
 1. Final Cut Pro を開く
 2. メニュー → **ファイル → 読み込む → XML...**
 3. 出力したFCPXMLファイルを選択
-4. タイムラインにテロップ付き動画が読み込まれる
+4. タイムラインにテロップ付き動画が読み込まれる（フォント・位置まで反映済み）
 
-FCP上でテロップの位置やスタイルをさらに微調整できます。
+### Premiere Pro / Filmora に読み込む（SRT / VTT）
+
+1. 映像を編集ソフトのタイムラインに配置する
+2. 出力した **SRT（Filmoraは主にSRT）** または **VTT** を字幕/キャプションとして読み込む
+   - Premiere Pro：キャプション（テキスト）として読み込み、キャプショントラックのスタイルでフォント・位置を設定
+   - Filmora：SRTを字幕として読み込み
+3. 必要に応じて、編集ソフト側でフォント・サイズ・縁取り・位置を設定（初回のみ）
+
+> 保存先は、アプリ版/`python desktop.py` では保存ダイアログで選べます。ブラウザ版（`python app.py`）で保存先未指定の場合は**デスクトップ**に出力されます。
 
 ## 設定をカスタマイズする
 
@@ -299,3 +346,15 @@ ffmpeg -i input.mov -c:v libx264 -c:a aac output.mp4
 ### ポート5050が使えない
 
 `app.py` の最後の行にあるポート番号を変更してください（例: 5051）。
+
+### （Windows）SmartScreenの警告が出る
+
+未署名のアプリのためです。「詳細情報」→「実行」をクリックすれば起動できます。
+
+### （Windows）ffmpegが見つからない
+
+`winget install ffmpeg` などでインストールした直後は、既に起動中のアプリにPATHの変更が反映されないことがあります。**アプリを再起動**してください。
+
+### （Windows）ウィンドウが真っ白・開かない
+
+WebView2ランタイムが未導入の可能性があります。[Microsoft Edge WebView2 Runtime](https://developer.microsoft.com/microsoft-edge/webview2/)を導入してください（Windows 11では標準搭載）。

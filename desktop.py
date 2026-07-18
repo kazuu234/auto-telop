@@ -63,12 +63,25 @@ class Api:
             return []
         return list(result)
 
-    def pick_save_path(self, default_name="output.fcpxml"):
-        """Open a native save dialog. Returns chosen path, or '' if cancelled."""
+    def pick_save_path(self, default_name="output.fcpxml", directory=None):
+        """Open a native save dialog. Returns chosen path, or '' if cancelled.
+
+        The file-type filter is inferred from the default_name extension so the
+        dialog matches the chosen export format (fcpxml / srt / vtt).
+        directory: optional initial directory (e.g. the last-used save dir).
+        """
+        from embed_te import FORMATS
+        ext = os.path.splitext(default_name)[1].lower().lstrip(".")
+        # ext(拡張子)フィールドで照合する。FORMATSのキー(フォーマットID)とext
+        # がたまたま一致しているだけなので、キー直引きにしない。
+        label = next((v["dialog_label"] for v in FORMATS.values()
+                     if v["ext"] == f".{ext}"), "すべて (*.*)")
+        file_types = (label, "すべて (*.*)")
         result = self._window.create_file_dialog(
             webview.SAVE_DIALOG,
+            directory=directory or "",
             save_filename=default_name,
-            file_types=("FCPXML (*.fcpxml)", "すべて (*.*)"),
+            file_types=file_types,
         )
         if not result:
             return ""

@@ -17,7 +17,16 @@ def load_config(path="config.yaml"):
         shutil.copy(default_path, config_path)
         print(f"Created {path} from config.default.yaml")
     with open(config_path) as f:
-        return yaml.safe_load(f)
+        config = yaml.safe_load(f)
+    # 空ファイル・裸のセクションキー（例: `output:` に値が無い）をNoneではなく
+    # {} に正規化する。呼び出し側全体（/editor, _remember_output_prefs,
+    # /api/last-save-dir 等）が config["section"] を安全に .get() できるようにする。
+    if config is None:
+        config = {}
+    for key in ("style", "whisper", "segment", "output"):
+        if key in config and config[key] is None:
+            config[key] = {}
+    return config
 
 
 def transcribe(video_path, config):
